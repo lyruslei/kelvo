@@ -1,4 +1,4 @@
-import Link from "next/link";
+import SlideLink from "@/components/SlideLink";
 import PageSlide from "@/components/PageSlide";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
@@ -38,7 +38,7 @@ export default async function LiftPage({ params }: { params: Promise<{ id: strin
     <PageSlide>
     <div className={styles.shell}>
       <header className={styles.header}>
-        <Link href="/report" className={styles.back} transitionTypes={["nav-back"]}>‹ Session</Link>
+        <SlideLink href="/report" className={styles.back} slide="back">‹ Session</SlideLink>
       </header>
       <main>
         <h1 className={styles.title} style={{ textTransform: "capitalize" }}>{exercise.name}</h1>

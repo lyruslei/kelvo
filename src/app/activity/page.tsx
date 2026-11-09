@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SlideLink from "@/components/SlideLink";
 import PageSlide from "@/components/PageSlide";
 import { requireSession } from "@/lib/session";
 import { addDays, HISTORY_DAYS, monthGrid, monthName, monthOf, shiftMonth, todayIn, WEEKDAYS } from "@/lib/days";
@@ -57,7 +58,7 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
               const cls = `${styles.cell} ${active ? styles.active : ""} ${d === today ? styles.today : ""}`;
               return d > today
                 ? <span key={d} className={`${styles.cell} ${styles.future}`}>{Number(d.slice(8))}</span>
-                : <Link key={d} href={d === today ? "/" : `/?day=${d}`} className={cls} aria-label={label} transitionTypes={["nav-forward"]}>{Number(d.slice(8))}</Link>;
+                : <SlideLink key={d} href={d === today ? "/" : `/?day=${d}`} className={cls} aria-label={label} slide="forward">{Number(d.slice(8))}</SlideLink>;
             })}
           </div>
 

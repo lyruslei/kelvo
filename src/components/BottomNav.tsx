@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import SlideLink from "./SlideLink";
 import { usePathname, useSearchParams } from "next/navigation";
 import styles from "./BottomNav.module.css";
 
@@ -19,23 +19,22 @@ export default function BottomNav() {
   const current = tabOf(path);
 
   return (
-    // Inline: CSS modules would rename it, and globals.css keeps "bottom-nav" still while pages slide.
-    <nav className={styles.bar} aria-label="Main" data-tabbar style={{ viewTransitionName: "bottom-nav" }}>
+    <nav className={styles.bar} aria-label="Main" data-tabbar>
       {TABS.map((t, i) => {
         // Today and Session follow the day you're looking at.
         const href = day && i > 0 ? `${t.path}?day=${day}` : t.path;
         return (
-          <Link
+          <SlideLink
             key={t.path}
             href={href}
             className={`${styles.tab} ${i === current ? styles.on : ""}`}
             aria-current={i === current ? "page" : undefined}
             prefetch={true}
-            transitionTypes={i === current ? undefined : [i > current ? "nav-forward" : "nav-back"]}
+            slide={i === current ? undefined : i > current ? "forward" : "back"}
           >
             <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="currentColor">{t.icon}</svg>
             <span className="sr-only">{t.label}</span>
-          </Link>
+          </SlideLink>
         );
       })}
     </nav>

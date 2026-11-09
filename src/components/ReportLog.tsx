@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import SlideLink from "./SlideLink";
 import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { deleteLogged, moveLogged } from "@/app/actions";
@@ -107,7 +107,7 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
                         <h3>{lift.name}</h3>
                       </label>
                     ) : (
-                      <h3><Link href={`/lift/${lift.exerciseId}`} className={styles.liftLink} transitionTypes={["nav-forward"]}>{lift.name} ›</Link></h3>
+                      <h3><SlideLink href={`/lift/${lift.exerciseId}`} className={styles.liftLink} slide="forward">{lift.name} ›</SlideLink></h3>
                     )}
                     {/* One badge: PR beats everything, else how it compares with last time. */}
                     <span className={`${styles.badge} ${lift.pr ? styles.pr : styles[lift.verdict]}`}>

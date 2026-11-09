@@ -1,4 +1,4 @@
-import Link from "next/link";
+import SlideLink from "@/components/SlideLink";
 import PageSlide from "@/components/PageSlide";
 import { requireSession } from "@/lib/session";
 import { todayIn } from "@/lib/days";
@@ -14,7 +14,7 @@ export default async function WeekPage() {
     <PageSlide>
     <div className={styles.shell}>
       <header className={styles.header}>
-        <Link href="/report" className={styles.back} transitionTypes={["nav-back"]}>‹ Session</Link>
+        <SlideLink href="/report" className={styles.back} slide="back">‹ Session</SlideLink>
       </header>
       <main>
         <h1 className={styles.title}>Last 7 days</h1>
