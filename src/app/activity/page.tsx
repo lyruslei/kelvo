@@ -2,17 +2,13 @@ import Link from "next/link";
 import PageSlide from "@/components/PageSlide";
 import { requireSession } from "@/lib/session";
 import { addDays, HISTORY_DAYS, monthGrid, monthName, monthOf, shiftMonth, todayIn, WEEKDAYS } from "@/lib/days";
-import { loadCardioDays, loadRange, loadRestDays } from "@/lib/store";
+import { loadCardioDays, loadRange } from "@/lib/store";
 import report from "../report/report.module.css";
 import styles from "./activity.module.css";
 
 export const instant = false;
 
-// Shade for a day: 0 nothing, 1 light (a few sets, or cardio only) up to 4 (a big session).
-const heatLevel = (sets: number, cardio: boolean) =>
-  sets >= 18 ? 4 : sets >= 12 ? 3 : sets >= 6 ? 2 : sets > 0 || cardio ? 1 : 0;
-
-// The month as a heatmap: how hard each day was. Tap a day to open it.
+// The month at a glance: yellow if you trained (any lift or cardio), empty if you rested. Tap a day to open it.
 export default async function ActivityPage({ searchParams }: PageProps<"/activity">) {
   await requireSession();
   const today = todayIn();
@@ -23,7 +19,7 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
 
   const from = `${month}-01`;
   const to = addDays(`${shiftMonth(month, 1)}-01`, -1);
-  const [sets, cardio, rest] = await Promise.all([loadRange(from, to), loadCardioDays(from, to), loadRestDays(from, to)]);
+  const [sets, cardio] = await Promise.all([loadRange(from, to), loadCardioDays(from, to)]);
 
   const setsOn = new Map<string, number>();
   for (const s of sets) setsOn.set(s.day, (setsOn.get(s.day) ?? 0) + 1);
@@ -56,10 +52,9 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
             {WEEKDAYS.map((w, i) => <span key={i} className={styles.weekday} aria-hidden="true">{w}</span>)}
             {monthGrid(month).map((d, i) => {
               if (!d) return <span key={`b${i}`} />;
-              const n = setsOn.get(d) ?? 0;
-              const level = heatLevel(n, cardio.has(d));
-              const label = `${d}: ${n ? `${n} sets` : cardio.has(d) ? "cardio" : rest.has(d) ? "rest day" : "nothing logged"}`;
-              const cls = `${styles.cell} ${styles[`l${level}`]} ${rest.has(d) && !level ? styles.rest : ""} ${d === today ? styles.today : ""}`;
+              const active = trained.has(d);
+              const label = `${d}: ${active ? "trained" : "rest"}`;
+              const cls = `${styles.cell} ${active ? styles.active : ""} ${d === today ? styles.today : ""}`;
               return d > today
                 ? <span key={d} className={`${styles.cell} ${styles.future}`}>{Number(d.slice(8))}</span>
                 : <Link key={d} href={d === today ? "/" : `/?day=${d}`} className={cls} aria-label={label} transitionTypes={["nav-forward"]}>{Number(d.slice(8))}</Link>;
@@ -67,10 +62,8 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
           </div>
 
           <p className={styles.legend} aria-hidden="true">
-            Less
-            {[0, 1, 2, 3, 4].map((l) => <span key={l} className={`${styles.swatch} ${styles[`l${l}`]}`} />)}
-            More
-            <span className={`${styles.swatch} ${styles.rest}`} /> Rest
+            <span className={`${styles.swatch} ${styles.active}`} /> Trained
+            <span className={styles.swatch} /> Rest
           </p>
         </main>
       </div>
