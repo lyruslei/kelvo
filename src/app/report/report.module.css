@@ -176,7 +176,7 @@
 .track {
   display: flex; align-items: flex-start;
   overflow-x: auto; overflow-y: hidden;
-  scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
   overscroll-behavior-x: contain; scrollbar-width: none;
   margin: 0 calc(-1 * var(--gutter));
   transition: height 220ms ease;

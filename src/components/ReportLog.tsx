@@ -198,6 +198,8 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
     const t = track.current;
     if (!t) return;
     const i = Math.round(t.scrollLeft / t.clientWidth);
+    // Only once snapped onto a panel: switching mid-swipe resized the track under the finger and phones overshot.
+    if (Math.abs(t.scrollLeft - i * t.clientWidth) > 1) return;
     if (i !== active) {
       setActive(i);
       window.scrollTo({ top: 0, behavior: "smooth" });
