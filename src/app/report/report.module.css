@@ -39,13 +39,43 @@
   font-weight: 700; font-size: 1.4rem;
 }
 
-.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.chips li { padding: 6px 12px; border-radius: var(--radius-pill); font-weight: 600; font-size: 0.95rem; color: #000; }
-.full { background: var(--yellow); }
-.soft { background: var(--yellow-deep); }
-.legend { display: flex; align-items: center; gap: 6px; margin: 10px 0 0; color: var(--gray); font-size: 0.85rem; }
-.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
-.legend .dot + .dot, .legend .dot:not(:first-child) { margin-left: 10px; }
+/* ---- Muscles worked (summary): role by grouping and size; orange = the one you tapped ---- */
+.roleLabel {
+  margin: 14px 0 8px; color: var(--gray);
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.panelSub + .roleLabel { margin-top: 0; }
+.muscles { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.muscle {
+  display: inline-flex; align-items: baseline; gap: 8px;
+  border-radius: var(--radius-pill); font-weight: 700;
+}
+.muscle:active { transform: scale(0.97); }
+.muscleMain {
+  min-height: 48px; padding: 0.55rem 1.1rem;
+  background: var(--card-raised); color: var(--white);
+  font-family: var(--font-display), sans-serif; font-size: 1.2rem;
+}
+.muscleHelped {
+  min-height: 40px; padding: 0.4rem 0.9rem;
+  background: transparent; color: var(--gray);
+  box-shadow: inset 0 0 0 1px var(--card-raised); font-size: 0.92rem; font-weight: 600;
+}
+.muscleSets { font-family: var(--font-body), sans-serif; font-size: 0.8rem; font-weight: 600; color: var(--gray); }
+.musclePicked { background: var(--orange); color: var(--white); box-shadow: none; }
+.musclePicked .muscleSets { color: rgba(255, 255, 255, 0.8); }
+
+.showAll { background: transparent; color: var(--yellow); padding: 0.4rem 0; min-height: 40px; font-size: 0.95rem; }
+.summaryLifts { list-style: none; margin: 0; padding: 0; background: var(--card); border-radius: 16px; }
+.summaryLifts li { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; }
+.summaryLifts li + li { border-top: 1px solid var(--card-raised); }
+.summaryName { font-weight: 600; text-transform: capitalize; }
+.summarySets { color: var(--gray); font-variant-numeric: tabular-nums; }
+.helpedTag {
+  margin-left: 8px; padding: 1px 7px; border-radius: var(--radius-pill);
+  box-shadow: inset 0 0 0 1px var(--card-raised);
+  color: var(--gray); font-size: 0.72rem; font-weight: 600; text-transform: lowercase;
+}
 
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .lift { background: var(--card); border-radius: 16px; padding: 14px 16px; }

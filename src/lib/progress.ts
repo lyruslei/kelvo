@@ -27,6 +27,24 @@ export function formatSets(sets: SimpleSet[]): string {
   return parts.join(", ");
 }
 
+// Shortest form, weight said once: "3 × 12 @ 25kg", "10, 9, 8 @ 24kg", "8 @ 60kg · 6 @ 70kg", "3 × 60s".
+export function compactSets(sets: SimpleSet[]): string {
+  const groups: SimpleSet[][] = [];
+  for (const s of sets) {
+    const last = groups[groups.length - 1];
+    if (last && last[0].weight_kg === s.weight_kg && !!last[0].reps === !!s.reps) last.push(s);
+    else groups.push([s]);
+  }
+  return groups
+    .map((g) => {
+      const amounts = g.map((s) => (s.reps ? `${s.reps}` : s.duration_s ? secs(s.duration_s) : "?"));
+      const amount = g.length > 1 && amounts.every((a) => a === amounts[0]) ? `${g.length} × ${amounts[0]}` : amounts.join(", ");
+      const load = g[0].weight_kg > 0 ? ` @ ${kg(g[0].weight_kg)}` : g[0].reps ? " bodyweight" : "";
+      return amount + load;
+    })
+    .join(" · ");
+}
+
 export const volume = (sets: SimpleSet[]) => Math.round(sets.reduce((sum, s) => sum + (s.reps ?? 0) * s.weight_kg, 0));
 export const totalReps = (sets: SimpleSet[]) => sets.reduce((sum, s) => sum + (s.reps ?? 0), 0);
 export const totalSeconds = (sets: SimpleSet[]) => sets.reduce((sum, s) => sum + (s.duration_s ?? 0), 0);

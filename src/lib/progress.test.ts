@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { compare, formatSets, personalRecord, volume } from "./progress.ts";
+import { compactSets, compare, formatSets, personalRecord, volume } from "./progress.ts";
 
 const s = (reps: number, weight_kg: number) => ({ reps, weight_kg });
 
@@ -53,4 +53,14 @@ test("personal records", () => {
   assert.equal(personalRecord([s(5, 95)], [[s(5, 95)]]), null);
   assert.equal(personalRecord([s(15, 0)], [[s(12, 0)]]), "Most reps: 15");
   assert.equal(personalRecord([{ reps: null, weight_kg: 0, duration_s: 90 }], [[{ reps: null, weight_kg: 0, duration_s: 60 }]]), "Longest hold: 90s");
+});
+
+test("compactSets says the weight once", () => {
+  const s = (reps: number | null, weight_kg: number, duration_s: number | null = null) => ({ reps, weight_kg, duration_s });
+  assert.equal(compactSets([s(12, 25), s(12, 25), s(12, 25)]), "3 × 12 @ 25kg");
+  assert.equal(compactSets([s(10, 24), s(9, 24), s(8, 24)]), "10, 9, 8 @ 24kg");
+  assert.equal(compactSets([s(8, 65), s(8, 65), s(7, 65)]), "8, 8, 7 @ 65kg");
+  assert.equal(compactSets([s(8, 60), s(6, 70)]), "8 @ 60kg · 6 @ 70kg");
+  assert.equal(compactSets([s(15, 0), s(12, 0)]), "15, 12 bodyweight");
+  assert.equal(compactSets([s(null, 0, 60), s(null, 0, 60)]), "2 × 1 min");
 });

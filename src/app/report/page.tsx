@@ -5,9 +5,10 @@ import { loadDay, loadHistory, loadRestDays, loadSessions } from "@/lib/store";
 import { GROUP_LABELS, REST_WINDOW_DAYS, suggestNext } from "@/lib/schedule";
 import { pace, summarizeDay } from "@/lib/turn";
 import { MUSCLE_LABELS, type Muscle } from "@/lib/muscles";
-import { compare, formatSets, personalRecord, totalReps, totalSeconds, volume, type SimpleSet } from "@/lib/progress";
+import { compactSets, compare, formatSets, personalRecord, totalReps, totalSeconds, volume, type SimpleSet } from "@/lib/progress";
 import ReportPanels, { type CardioView, type LiftView } from "@/components/ReportLog";
 import WeekView from "@/components/WeekView";
+import MuscleSummary, { type MuscleView, type SummaryLift } from "@/components/MuscleSummary";
 import styles from "./report.module.css";
 
 export const instant = false;
@@ -28,10 +29,12 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
   const plan = history ? suggestNext(day, history, 3, restDays) : [];
 
   // Group the day's sets by exercise, in the order they were logged.
-  const lifts = new Map<number, { name: string; sets: SimpleSet[]; ids: number[] }>();
+  const lifts = new Map<number, { name: string; sets: SimpleSet[]; ids: number[]; primary: Muscle[]; secondary: Muscle[] }>();
   // Lifts in logging order (rows come by id); sets within a lift by set number.
   for (const s of [...data.sets].sort((a, b) => a.id - b.id)) {
-    if (!lifts.has(s.exercise_id)) lifts.set(s.exercise_id, { name: s.exercise.name, sets: [], ids: [] });
+    if (!lifts.has(s.exercise_id)) {
+      lifts.set(s.exercise_id, { name: s.exercise.name, sets: [], ids: [], primary: s.exercise.primary_muscles, secondary: s.exercise.secondary_muscles });
+    }
   }
   for (const s of [...data.sets].sort((a, b) => a.set_no - b.set_no || a.id - b.id)) {
     const cur = lifts.get(s.exercise_id)!;
@@ -73,9 +76,18 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
     ].filter(Boolean).join(" · "),
   }));
 
+  // Muscles by role, most sets first. Main = a lift's main target; helped = only ever assisted.
   const muscles = Object.entries(summary.glow) as [Muscle, "full" | "soft"][];
-  const full = muscles.filter(([, g]) => g === "full").map(([m]) => m);
-  const soft = muscles.filter(([, g]) => g === "soft").map(([m]) => m);
+  const setsFor = (m: Muscle, role: "primary" | "secondary") =>
+    [...lifts.values()].reduce((n, l) => n + (l[role].includes(m) ? l.sets.length : 0), 0);
+  const byRole = (glow: "full" | "soft"): MuscleView[] =>
+    muscles
+      .filter(([, g]) => g === glow)
+      .map(([m]) => ({ key: m, label: MUSCLE_LABELS[m], sets: setsFor(m, glow === "full" ? "primary" : "secondary") }))
+      .sort((a, b) => b.sets - a.sets);
+  const summaryLifts: SummaryLift[] = [...lifts.values()].map((l) => ({
+    name: l.name, sets: compactSets(l.sets), primary: l.primary, secondary: l.secondary,
+  }));
   const empty = !data.sets.length && !data.cardio.length;
 
   const upNext = isToday ? (
@@ -105,19 +117,7 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
         <div><dt>Exercises</dt><dd>{lifts.size}</dd></div>
         <div><dt>Cardio</dt><dd>{summary.cardioMin}<small> min</small></dd></div>
       </dl>
-      {muscles.length > 0 && (
-        <div className={styles.section}>
-          <h2 className={styles.panelSub}>Muscles worked</h2>
-          <ul className={styles.chips}>
-            {full.map((m) => <li key={m} className={styles.full}>{MUSCLE_LABELS[m]}</li>)}
-            {soft.map((m) => <li key={m} className={styles.soft}>{MUSCLE_LABELS[m]}</li>)}
-          </ul>
-          <p className={styles.legend}>
-            <span className={`${styles.dot} ${styles.full}`} /> Main target
-            <span className={`${styles.dot} ${styles.soft}`} /> Helped
-          </p>
-        </div>
-      )}
+      <MuscleSummary main={byRole("full")} helped={byRole("soft")} lifts={summaryLifts} />
     </>
   );
 
