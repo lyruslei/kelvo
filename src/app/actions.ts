@@ -2,7 +2,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { isLoggedIn } from "@/lib/session";
 import { askCoach } from "@/lib/coach";
-import { todayIn } from "@/lib/days";
+import { parseDay, todayIn } from "@/lib/days";
 import { describeDay, loadDay, loadHistory, loadLibrary, saveTurn } from "@/lib/store";
 import { describePlan, suggestNext } from "@/lib/schedule";
 import { normalizeTurn } from "@/lib/turn";
@@ -11,22 +11,25 @@ export type ChatResult = { ok: true; reply: string } | { ok: false; error: strin
 
 const MAX_TEXT = 2000;
 
-export async function sendMessage(text: string): Promise<ChatResult> {
+// `viewedDay` is the day on screen: today, or an earlier day you're filling in.
+export async function sendMessage(text: string, viewedDay?: string): Promise<ChatResult> {
   if (!(await isLoggedIn())) return { ok: false, error: "Your session ended. Log in again." };
   const msg = typeof text === "string" ? text.trim() : "";
   if (!msg) return { ok: false, error: "Type what you did first." };
   if (msg.length > MAX_TEXT) return { ok: false, error: `Keep it under ${MAX_TEXT} characters.` };
 
-  const day = todayIn();
+  const today = todayIn();
+  const day = viewedDay === undefined ? today : parseDay(viewedDay, today);
+  if (!day) return { ok: false, error: "You can only log to today or the past year." };
   try {
-    const [library, today, history] = await Promise.all([loadLibrary(), loadDay(day), loadHistory(day)]);
+    const [library, logged, history] = await Promise.all([loadLibrary(), loadDay(day), loadHistory(today)]);
     const raw = await askCoach({
       text: msg,
-      today: day,
+      today: day === today ? day : `${day} (an earlier day; today is ${today})`,
       libraryNames: [...library.keys()],
-      todayLog: describeDay(today.sets, today.cardio),
-      plan: describePlan(suggestNext(day, history)),
-      history: today.messages.slice(-20),
+      todayLog: describeDay(logged.sets, logged.cardio),
+      plan: describePlan(suggestNext(today, history)),
+      history: logged.messages.slice(-20),
     });
     const turn = normalizeTurn(raw, library);
     await saveTurn(day, turn, msg);

@@ -1,0 +1,27 @@
+.wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0 12px;
+}
+.heading { margin: 0; }
+.button {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: transparent; padding: 0; min-height: 44px; border-radius: 8px;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700; font-size: 2.1rem; letter-spacing: -0.01em;
+  color: var(--white);
+}
+.button:active { transform: none; }
+/* The native date input sits under the heading so its picker opens there; it stays invisible. */
+.input {
+  position: absolute; left: 0; bottom: 0;
+  width: 1px; height: 1px; padding: 0; min-height: 0;
+  opacity: 0; pointer-events: none;
+}
+.today {
+  background: var(--card); color: var(--yellow);
+  font-size: 0.95rem; padding: 0.5rem 1rem;
+}

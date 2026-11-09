@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
-import { niceDate, relativeDay, todayIn } from "@/lib/days";
+import { niceDate, parseDay, relativeDay, todayIn } from "@/lib/days";
 import { loadDay, loadHistory, loadLastSessions } from "@/lib/store";
 import { GROUP_LABELS, REST_WINDOW_DAYS, suggestNext } from "@/lib/schedule";
 import { summarizeDay } from "@/lib/turn";
@@ -12,13 +12,16 @@ export const instant = false;
 
 const VERDICT_LABEL: Record<Verdict, string> = { up: "Up", same: "Same", down: "Down", first: "New" };
 
-export default async function ReportPage() {
+export default async function ReportPage({ searchParams }: PageProps<"/report">) {
   await requireSession();
 
-  const day = todayIn();
-  const [data, history] = await Promise.all([loadDay(day), loadHistory(day)]);
+  const today = todayIn();
+  const day = parseDay((await searchParams).day, today) ?? today;
+  const isToday = day === today;
+  const [data, history] = await Promise.all([loadDay(day), isToday ? loadHistory(day) : Promise.resolve(null)]);
   const summary = summarizeDay(data.sets, data.cardio);
-  const plan = suggestNext(day, history);
+  // Suggestions only make sense looking forward from today.
+  const plan = history ? suggestNext(day, history) : [];
 
   // Group today's sets by exercise, in the order they were logged.
   const lifts = new Map<number, { name: string; sets: SimpleSet[] }>();
@@ -34,7 +37,7 @@ export default async function ReportPage() {
   const soft = muscles.filter(([, g]) => g === "soft").map(([m]) => m);
   const empty = !data.sets.length && !data.cardio.length;
 
-  const upNext = (
+  const upNext = isToday && (
     <section className={styles.section} aria-labelledby="next">
       <h2 id="next">Up next</h2>
       <ol className={styles.plan}>
@@ -54,16 +57,16 @@ export default async function ReportPage() {
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <Link href="/" className={styles.back}>‹ Today</Link>
+        <Link href={isToday ? "/" : `/?day=${day}`} className={styles.back}>‹ {isToday ? "Today" : "Back"}</Link>
       </header>
 
       <main>
-        <h1 className={styles.title}>Today&apos;s report</h1>
+        <h1 className={styles.title}>{isToday ? "Today's report" : "Day report"}</h1>
         <p className={styles.date}>{niceDate(day)}</p>
 
         {empty ? (
           <>
-            <p className={styles.empty}>Nothing logged yet today. Tell the chat what you did and the report fills in.</p>
+            <p className={styles.empty}>Nothing logged on this day. Tell the chat what you did and the report fills in.</p>
             {upNext}
           </>
         ) : (
@@ -132,7 +135,7 @@ export default async function ReportPage() {
                     </li>
                   ))}
                 </ul>
-                {summary.cardioKm > 0 && <p className={styles.note}>{summary.cardioKm} km total today.</p>}
+                {summary.cardioKm > 0 && <p className={styles.note}>{summary.cardioKm} km total {isToday ? "today" : "that day"}.</p>}
               </section>
             )}
           </>

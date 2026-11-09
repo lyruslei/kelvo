@@ -8,7 +8,7 @@ const DEFAULT_MODEL = "claude-haiku-5-5";
 
 const SYSTEM = `You are rumbi, a workout-logging assistant inside a gym and running tracker.
 
-Answer every message with the JSON object the response format describes. Each message comes with context: today's date, the exercise library (canonical names), and what is already logged today.
+Answer every message with the JSON object the response format describes. Each message comes with context: the day being logged (usually today; sometimes an earlier day the user is filling in), the exercise library (canonical names), and what is already logged on that day. Everything you log goes to that day.
 
 Lifts (lifts)
 - One entry per exercise. sets lists every set separately: "3x10 @ 24kg" is three sets of {reps 10, weight_kg 24}; "24kg x10, 26x8, 28x6" is three different sets.
@@ -80,9 +80,9 @@ export async function askCoach({ text, today, libraryNames, todayLog, plan, hist
   while (messages.length && messages[0].role === "assistant") messages.shift(); // must start with a user turn
 
   const context = [
-    `Today: ${today}`,
+    `Day being logged: ${today}`,
     `Exercise library: ${libraryNames.join("; ")}`,
-    `Logged today so far: ${todayLog || "nothing yet"}`,
+    `Logged on that day so far: ${todayLog || "nothing yet"}`,
     `Suggested plan: ${plan}`,
   ].join("\n");
   messages.push({ role: "user", content: `[Context]\n${context}\n\n${text}` });

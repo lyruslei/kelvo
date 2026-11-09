@@ -11,6 +11,16 @@ export function addDays(day: string, n: number): string {
   return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
 }
 
+export const HISTORY_DAYS = 365;
+
+// A ?day= value you may view or log to: a real date, not in the future, within the last year.
+export function parseDay(value: unknown, today: string): string | null {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+  if (addDays(value, 0) !== value) return null; // e.g. 2026-02-31
+  if (value > today || value < addDays(today, -HISTORY_DAYS)) return null;
+  return value;
+}
+
 export function niceDate(day: string): string {
   const [y, m, d] = day.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
