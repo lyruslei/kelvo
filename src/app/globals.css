@@ -14,8 +14,27 @@
   --radius-card: 22px;
   --radius-pill: 999px;
   --gutter: 16px;
+  --nav-h: 0px; /* height of the bottom tab bar; 0 on pages without it (login) */
 
   color-scheme: dark;
+}
+/* Space the floating bar takes at the bottom: 64px pill + 12px gap below + 8px gap above. */
+:root:has([data-tabbar]) { --nav-h: calc(84px + env(safe-area-inset-bottom)); }
+body:has([data-tabbar]) { padding-bottom: var(--nav-h); }
+
+/* ---- Page slides between tabs (PageSlide + BottomNav). From the Next.js view-transitions guide. ---- */
+::view-transition { pointer-events: none; }
+::view-transition-old(.nav-forward) { --slide-offset: -60px; animation: 150ms ease-in both fade reverse, 400ms ease-in-out both slide reverse; }
+::view-transition-new(.nav-forward) { --slide-offset: 60px; animation: 210ms ease-out 150ms both fade, 400ms ease-in-out both slide; }
+::view-transition-old(.nav-back) { --slide-offset: 60px; animation: 150ms ease-in both fade reverse, 400ms ease-in-out both slide reverse; }
+::view-transition-new(.nav-back) { --slide-offset: -60px; animation: 210ms ease-out 150ms both fade, 400ms ease-in-out both slide; }
+@keyframes slide { from { translate: var(--slide-offset); } to { translate: 0; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+::view-transition-group(bottom-nav) { animation: none; z-index: 100; }
+::view-transition-old(bottom-nav) { display: none; }
+::view-transition-new(bottom-nav) { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*), ::view-transition-new(*), ::view-transition-group(*) { animation-duration: 0s !important; animation-delay: 0s !important; }
 }
 
 * { box-sizing: border-box; }

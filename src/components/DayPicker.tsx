@@ -1,27 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { addDays } from "@/lib/days";
+import { addDays, monthGrid, monthName, monthOf, shiftMonth, WEEKDAYS } from "@/lib/days";
 import styles from "./DayPicker.module.css";
-
-const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
-const monthOf = (d: string) => d.slice(0, 7); // "2026-11"
-const shiftMonth = (m: string, n: number) => {
-  const [y, mo] = m.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, mo - 1 + n, 1));
-  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}`;
-};
-const monthName = (m: string) =>
-  new Date(`${m}-01T00:00:00Z`).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
-
-// The month's grid: blanks before the 1st so weeks start on Sunday, then each day.
-function grid(m: string): (string | null)[] {
-  const first = `${m}-01`;
-  const lead = new Date(`${first}T00:00:00Z`).getUTCDay();
-  const days: (string | null)[] = Array(lead).fill(null);
-  for (let d = first; monthOf(d) === m; d = addDays(d, 1)) days.push(d);
-  return days;
-}
 
 // The "Today ▾" heading: tap it to pick another day to look at (or log to).
 export default function DayPicker({ day, today, min, label, basePath = "/" }: { day: string; today: string; min: string; label: string; basePath?: string }) {
@@ -92,7 +73,7 @@ export default function DayPicker({ day, today, min, label, basePath = "/" }: { 
 
           <div className={styles.grid} role="grid">
             {WEEKDAYS.map((w, i) => <span key={i} className={styles.weekday} aria-hidden="true">{w}</span>)}
-            {grid(month).map((d, i) =>
+            {monthGrid(month).map((d, i) =>
               d === null ? <span key={`b${i}`} /> : (
                 <button
                   key={d}

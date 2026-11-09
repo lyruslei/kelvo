@@ -122,6 +122,15 @@ export async function loadRange(fromDay: string, toDay: string) {
   ) as unknown as { day: string; reps: number | null; weight_kg: number; exercise: { primary_muscles: Muscle[]; secondary_muscles: Muscle[] } }[];
 }
 
+// Days with any cardio between `fromDay` and `toDay`, inclusive (activity heatmap).
+export async function loadCardioDays(fromDay: string, toDay: string): Promise<Set<string>> {
+  const rows = check(
+    await db().from("cardio_sessions").select("day").gte("day", fromDay).lte("day", toDay),
+    "load cardio days",
+  ) as { day: string }[];
+  return new Set(rows.map((r) => r.day));
+}
+
 // Compact log of the `days` days before `day`, for Claude ("what did I bench last week",
 // "same as last push day").
 export async function loadRecentLog(day: string, days = 14): Promise<string> {

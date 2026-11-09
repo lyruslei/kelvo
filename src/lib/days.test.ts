@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseDay, parseRestDay, relativeDay, todayIn } from "./days.ts";
+import { monthGrid, parseDay, parseRestDay, relativeDay, todayIn } from "./days.ts";
 
 test("parseDay accepts real past dates within a year", () => {
   assert.equal(parseDay("2026-11-02", "2026-11-09"), "2026-11-02");
@@ -31,4 +31,13 @@ test("rest days can be planned up to 60 days ahead", () => {
   assert.equal(parseRestDay("2027-01-09", "2026-11-09"), null);
   assert.equal(parseRestDay("2026-11-31", "2026-11-09"), null);
   assert.equal(parseRestDay("2026-11-02", "2026-11-09"), "2026-11-02"); // past still fine
+});
+
+test("monthGrid pads to Sunday and lists every day", () => {
+  const g = monthGrid("2026-11"); // 1 Nov 2026 is a Sunday
+  assert.equal(g[0], "2026-11-01");
+  assert.equal(g.length, 30);
+  const feb = monthGrid("2027-02"); // starts Monday: one blank
+  assert.equal(feb[0], null);
+  assert.equal(feb.filter(Boolean).length, 28);
 });

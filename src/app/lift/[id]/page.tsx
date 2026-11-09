@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageSlide from "@/components/PageSlide";
 import { notFound } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { niceDate } from "@/lib/days";
@@ -34,9 +35,10 @@ export default async function LiftPage({ params }: { params: Promise<{ id: strin
   const points = oldestFirst.slice(-MAX_POINTS).map((s) => ({ day: s.day, v: value(s.sets) }));
 
   return (
+    <PageSlide>
     <div className={styles.shell}>
       <header className={styles.header}>
-        <Link href="/report" className={styles.back}>‹ Session</Link>
+        <Link href="/report" className={styles.back} transitionTypes={["nav-back"]}>‹ Session</Link>
       </header>
       <main>
         <h1 className={styles.title} style={{ textTransform: "capitalize" }}>{exercise.name}</h1>
@@ -67,6 +69,7 @@ export default async function LiftPage({ params }: { params: Promise<{ id: strin
         </section>
       </main>
     </div>
+    </PageSlide>
   );
 }
 

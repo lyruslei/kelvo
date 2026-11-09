@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PageSlide from "@/components/PageSlide";
 import { requireSession } from "@/lib/session";
 import { todayIn } from "@/lib/days";
 import WeekView from "@/components/WeekView";
@@ -10,14 +11,16 @@ export const instant = false;
 export default async function WeekPage() {
   await requireSession();
   return (
+    <PageSlide>
     <div className={styles.shell}>
       <header className={styles.header}>
-        <Link href="/report" className={styles.back}>‹ Session</Link>
+        <Link href="/report" className={styles.back} transitionTypes={["nav-back"]}>‹ Session</Link>
       </header>
       <main>
-        <h1 className={styles.title}>This week</h1>
+        <h1 className={styles.title}>Last 7 days</h1>
         <WeekView endDay={todayIn()} />
       </main>
     </div>
+    </PageSlide>
   );
 }

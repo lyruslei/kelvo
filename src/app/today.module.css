@@ -1,7 +1,7 @@
 .shell {
   max-width: 520px;
   margin: 0 auto;
-  min-height: 100dvh;
+  min-height: calc(100dvh - var(--nav-h));
   padding: env(safe-area-inset-top) var(--gutter) 0;
   display: flex;
   flex-direction: column;
@@ -22,14 +22,6 @@
   border-radius: var(--radius-card);
   padding: 20px 18px 18px;
 }
-.more {
-  position: absolute; top: 16px; right: 18px;
-  color: var(--yellow); font-weight: 600; font-size: 0.95rem;
-  text-decoration: none;
-  min-height: 44px; display: inline-flex; align-items: center;
-  margin-top: -12px; z-index: 1;
-}
-.more:hover { text-decoration: underline; }
 .body { height: 340px; padding-top: 18px; }
 .restNote { margin: 8px 0 0; text-align: center; color: var(--gray); font-size: 0.95rem; }
 
@@ -58,10 +50,16 @@
 .thinking { color: var(--gray); }
 
 .composer {
-  position: sticky; bottom: 0;
+  position: sticky; bottom: var(--nav-h);
   display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-  padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+  padding: 12px 0;
   background: var(--bg);
+}
+/* Covers the strip under the chat box, down behind the floating bar, so messages don't show through. */
+.composer::after {
+  content: ""; position: absolute; z-index: -1;
+  left: calc(-1 * var(--gutter)); right: calc(-1 * var(--gutter)); top: 100%;
+  height: var(--nav-h); background: var(--bg);
 }
 .composer input { flex: 1; }
 .composerNote { flex-basis: 100%; margin: 0; color: var(--gray); font-size: 0.9rem; }

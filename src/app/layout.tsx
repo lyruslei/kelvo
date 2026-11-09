@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
+import { Suspense } from "react";
+import BottomNav from "@/components/BottomNav";
 import "./globals.css";
 
 const barlow = Barlow({
@@ -28,7 +30,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${barlow.variable} ${barlowCondensed.variable}`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        {/* Suspense: the bar reads ?day= from the URL. */}
+        <Suspense fallback={null}><BottomNav /></Suspense>
+      </body>
     </html>
   );
 }

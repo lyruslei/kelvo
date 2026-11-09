@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { Suspense } from "react";
+import PageSlide from "@/components/PageSlide";
 import { requireSession } from "@/lib/session";
 import { addDays, HISTORY_DAYS, niceDate, parseDay, relativeDay, todayIn } from "@/lib/days";
 import { loadDay, loadHistory, loadRestDays, loadSessions } from "@/lib/store";
@@ -117,11 +118,8 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
   );
 
   return (
+    <PageSlide>
     <div className={styles.shell}>
-      <header className={styles.header}>
-        <Link href={isToday ? "/" : `/?day=${day}`} className={styles.back}>‹ {isToday ? "Today" : "Back"}</Link>
-      </header>
-
       <main>
         <h1 className={styles.title}>{isToday ? "Today's session" : "Session"}</h1>
         <p className={styles.date}>{niceDate(day)}</p>
@@ -129,7 +127,7 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
         <ReportPanels
           summary={summaryPanel}
           upNext={upNext}
-          week={<><h2 className={styles.panelSub}>The week to {isToday ? "today" : niceDate(day)}</h2><WeekView endDay={day} headingLevel={3} /></>}
+          week={<><h2 className={styles.panelSub}>{isToday ? "Last 7 days" : `7 days to ${niceDate(day)}`}</h2><Suspense fallback={null}><WeekView endDay={day} headingLevel={3} /></Suspense></>}
           lifts={liftViews}
           cardio={cardioViews}
           cardioTotal={summary.cardioKm > 0 ? `${summary.cardioKm} km total ${isToday ? "today" : "that day"}.` : null}
@@ -139,5 +137,6 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
         />
       </main>
     </div>
+    </PageSlide>
   );
 }

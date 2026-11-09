@@ -52,7 +52,7 @@ export default async function WeekView({ endDay, headingLevel = 2 }: { endDay: s
           ))}
         </ul>
         <p className={styles.note}>
-          {missed.length ? `Not hit this week: ${missed.map((g) => GROUP_LABELS[g]).join(", ")}.` : "Every group got work this week."}
+          {missed.length ? `Not hit in the last 7 days: ${missed.map((g) => GROUP_LABELS[g]).join(", ")}.` : "Every group got work in the last 7 days."}
           {" "}A set counts for a group when it was a main target of the lift.
         </p>
       </section>

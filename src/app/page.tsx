@@ -1,4 +1,4 @@
-import Link from "next/link";
+import PageSlide from "@/components/PageSlide";
 import { requireSession } from "@/lib/session";
 import { computeGlow, PREVIEWS } from "@/lib/muscles";
 import { addDays, HISTORY_DAYS, niceDate, parseDay, todayIn } from "@/lib/days";
@@ -35,6 +35,7 @@ export default async function TodayPage({ searchParams }: PageProps<"/">) {
   const glow = PREVIEWS[key] ? computeGlow(PREVIEWS[key]) : summary.glow;
 
   return (
+    <PageSlide>
     <div className={styles.shell}>
       <header className={styles.header}>
         <Wordmark />
@@ -45,7 +46,6 @@ export default async function TodayPage({ searchParams }: PageProps<"/">) {
 
         <section className={styles.card} aria-labelledby="day-card">
           <h2 id="day-card" className="sr-only">{isRest ? "Rest day" : "Muscles worked"}</h2>
-          <Link href={isToday ? "/report" : `/report?day=${day}`} className={styles.more}>Show more ›</Link>
           <div className={styles.body}>
             {isRest ? <RestDay /> : <BodyMap glow={glow} />}
           </div>
@@ -65,5 +65,6 @@ export default async function TodayPage({ searchParams }: PageProps<"/">) {
         <Chat key={`${day}:${data.messages.length}`} initial={data.messages} day={day} isToday={isToday} />
       </main>
     </div>
+    </PageSlide>
   );
 }

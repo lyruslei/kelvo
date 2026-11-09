@@ -40,3 +40,23 @@ export function relativeDay(day: string, today: string): string {
   const [y, m, d] = day.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-GB", { weekday: "long", timeZone: "UTC" });
 }
+
+// ---- Month calendars (day picker, activity heatmap) ----
+export const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+export const monthOf = (d: string) => d.slice(0, 7); // "2026-11"
+export const shiftMonth = (m: string, n: number) => {
+  const [y, mo] = m.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, mo - 1 + n, 1));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}`;
+};
+export const monthName = (m: string) =>
+  new Date(`${m}-01T00:00:00Z`).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+
+// The month's grid: blanks before the 1st so weeks start on Sunday, then each day.
+export function monthGrid(m: string): (string | null)[] {
+  const first = `${m}-01`;
+  const lead = new Date(`${first}T00:00:00Z`).getUTCDay();
+  const days: (string | null)[] = Array(lead).fill(null);
+  for (let d = first; monthOf(d) === m; d = addDays(d, 1)) days.push(d);
+  return days;
+}

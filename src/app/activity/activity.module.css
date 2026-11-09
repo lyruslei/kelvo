@@ -1,0 +1,38 @@
+.monthBar { display: flex; align-items: center; justify-content: space-between; margin: 16px 0 14px; }
+.month { margin: 0; font-size: 1.15rem; font-weight: 700; }
+.arrow {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  color: var(--white); text-decoration: none; font-size: 1.6rem; border-radius: 50%;
+}
+a.arrow:hover { background: var(--card); }
+
+.totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 18px; }
+.totals div { background: var(--card); border-radius: 16px; padding: 12px 14px; }
+.totals dt { color: var(--gray); font-size: 0.8rem; }
+.totals dd {
+  margin: 2px 0 0; color: var(--yellow);
+  font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 1.6rem; line-height: 1.1;
+}
+.totals small { color: var(--gray); font-size: 0.8rem; font-family: var(--font-body), sans-serif; }
+
+.grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.weekday { text-align: center; color: var(--gray); font-size: 0.8rem; padding-bottom: 2px; }
+.cell {
+  aspect-ratio: 1; border-radius: 10px;
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 0.95rem; font-variant-numeric: tabular-nums;
+  color: var(--white); text-decoration: none;
+}
+/* Heat: card grey, then deeper to brighter yellow. Dark text on the bright two. */
+.l0 { background: var(--card); color: var(--gray); }
+.l1 { background: color-mix(in srgb, var(--yellow) 22%, var(--card)); }
+.l2 { background: color-mix(in srgb, var(--yellow) 45%, var(--card)); }
+.l3 { background: color-mix(in srgb, var(--yellow) 72%, var(--card)); color: #000; }
+.l4 { background: var(--yellow); color: #000; }
+.rest { box-shadow: inset 0 0 0 1.5px var(--yellow-deep); }
+.today { outline: 2px solid var(--white); outline-offset: 2px; }
+.future { background: transparent; color: #3A3732; }
+
+.legend { display: flex; align-items: center; gap: 6px; margin: 14px 0 0; color: var(--gray); font-size: 0.8rem; }
+.swatch { width: 14px; height: 14px; border-radius: 4px; }
+.swatch.rest { margin-left: 12px; background: var(--card); }

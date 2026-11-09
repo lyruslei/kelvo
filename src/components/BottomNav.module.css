@@ -1,0 +1,27 @@
+/* Floating pill above the bottom edge; content scrolls under it, blurred. */
+.bar {
+  position: fixed; z-index: 20;
+  left: var(--gutter); right: var(--gutter);
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  max-width: 420px; margin: 0 auto;
+  height: 64px; padding: 6px;
+  display: flex; gap: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(38, 35, 29, 0.72);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.tab {
+  flex: 1;
+  display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--white);
+  transition: background-color 160ms ease;
+}
+.tab:active { transform: scale(0.96); }
+.on { background: rgba(255, 255, 255, 0.14); }
+
+@media (prefers-reduced-motion: reduce) {
+  .tab { transition: none; }
+}

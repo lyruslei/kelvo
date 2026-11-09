@@ -19,7 +19,7 @@ export type LiftView = {
 export type CardioView = { id: number; kind: string; line: string };
 
 
-// The session as swipeable panels (Summary, Lifts, Cardio, Plan, This week): swipe left/right
+// The session as swipeable panels (Summary, Lifts, Cardio, Plan, Last 7 days): swipe left/right
 // or tap a tab. Lifts and Cardio share an Edit mode to delete entries or move them to another day.
 export default function ReportPanels({ summary, upNext, week, lifts, cardio, cardioTotal, day, today, min }: {
   summary: ReactNode;
@@ -81,7 +81,7 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
   );
 
   // ---- Panels ----
-  // Order: Summary, Lifts, Cardio, Plan, This week.
+  // Order: Summary, Lifts, Cardio, Plan, Last 7 days.
   const panels: { id: string; label: string; body: ReactNode }[] = [{ id: "summary", label: "Summary", body: summary }];
 
   if (lifts.length) {
@@ -107,7 +107,7 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
                         <h3>{lift.name}</h3>
                       </label>
                     ) : (
-                      <h3><Link href={`/lift/${lift.exerciseId}`} className={styles.liftLink}>{lift.name} ›</Link></h3>
+                      <h3><Link href={`/lift/${lift.exerciseId}`} className={styles.liftLink} transitionTypes={["nav-forward"]}>{lift.name} ›</Link></h3>
                     )}
                     {/* One badge: PR beats everything, else how it compares with last time. */}
                     <span className={`${styles.badge} ${lift.pr ? styles.pr : styles[lift.verdict]}`}>
@@ -172,7 +172,7 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
   }
 
   if (upNext) panels.push({ id: "plan", label: "Plan", body: upNext });
-  panels.push({ id: "week", label: "This week", body: week });
+  panels.push({ id: "week", label: "Last 7 days", body: week });
 
   // ---- Swiping ----
   const track = useRef<HTMLDivElement>(null);
@@ -197,7 +197,11 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
   const onScroll = () => {
     const t = track.current;
     if (!t) return;
-    const i = Math.round(t.scrollLeft / t.clientWidth);
+    // Grow to fit the panel sliding in before it shows, so a taller one isn't cut off; shrink only after landing.
+    const pos = t.scrollLeft / t.clientWidth;
+    const incoming = Math.max(panelRefs.current[Math.floor(pos)]?.offsetHeight ?? 0, panelRefs.current[Math.ceil(pos)]?.offsetHeight ?? 0);
+    if (incoming > (height ?? 0)) setHeight(incoming);
+    const i = Math.round(pos);
     // Only once snapped onto a panel: switching mid-swipe resized the track under the finger and phones overshot.
     if (Math.abs(t.scrollLeft - i * t.clientWidth) > 1) return;
     if (i !== active) {
@@ -250,13 +254,12 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
             className={styles.panel}
           >
             {p.body}
+            <p className={styles.swipeHint} aria-hidden="true">
+              {i < panels.length - 1 ? `Swipe for ${panels[i + 1].label} ›` : "‹ Swipe back"}
+            </p>
           </section>
         ))}
       </div>
-
-      <p className={styles.swipeHint} aria-hidden="true">
-        {active < panels.length - 1 ? `Swipe for ${panels[active + 1].label} ›` : "‹ Swipe back"}
-      </p>
 
       {editing && (
         <div className={styles.toolbar} role="region" aria-label="Edit selected entries">
