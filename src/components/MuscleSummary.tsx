@@ -6,7 +6,7 @@ export type MuscleView = { key: string; label: string; sets: number };
 export type SummaryLift = { name: string; sets: string; primary: string[]; secondary: string[] };
 
 // Muscles worked, split into main target and also worked (assisted), and the day's lifts.
-// Tap a muscle to list only the lifts that worked it; tap again to show all.
+// Tap a muscle to list only the lifts that worked it; tap it again to list every lift.
 export default function MuscleSummary({ main, helped, lifts }: { main: MuscleView[]; helped: MuscleView[]; lifts: SummaryLift[] }) {
   const [picked, setPicked] = useState<string | null>(null);
   const label = [...main, ...helped].find((m) => m.key === picked)?.label;
@@ -53,12 +53,7 @@ export default function MuscleSummary({ main, helped, lifts }: { main: MuscleVie
 
       {lifts.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.panelHead}>
-            <h2 className={styles.panelSub}>{label ? `${label} lifts` : "Lifts"}</h2>
-            {picked && (
-              <button type="button" className={styles.showAll} onClick={() => setPicked(null)}>Show all</button>
-            )}
-          </div>
+          <h2 className={styles.panelSub}>{label ? `${label} lifts` : "Lifts"}</h2>
           <ul className={styles.summaryLifts}>
             {shown.map((l) => (
               <li key={l.name}>
@@ -70,7 +65,7 @@ export default function MuscleSummary({ main, helped, lifts }: { main: MuscleVie
               </li>
             ))}
           </ul>
-          {!picked && <p className={styles.note}>Tap a muscle to see only its lifts.</p>}
+          <p className={styles.note}>{picked ? `Tap ${label} again to see every lift.` : "Tap a muscle to see only its lifts."}</p>
         </div>
       )}
     </>

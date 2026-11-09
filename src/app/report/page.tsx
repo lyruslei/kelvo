@@ -5,7 +5,7 @@ import { loadDay, loadHistory, loadRestDays, loadSessions } from "@/lib/store";
 import { GROUP_LABELS, REST_WINDOW_DAYS, suggestNext } from "@/lib/schedule";
 import { pace, summarizeDay } from "@/lib/turn";
 import { MUSCLE_LABELS, type Muscle } from "@/lib/muscles";
-import { compactSets, compare, formatSets, personalRecord, totalReps, totalSeconds, volume, type SimpleSet } from "@/lib/progress";
+import { compactSets, compare, formatSets, personalRecord, type SimpleSet } from "@/lib/progress";
 import ReportPanels, { type CardioView, type LiftView } from "@/components/ReportLog";
 import WeekView from "@/components/WeekView";
 import MuscleSummary, { type MuscleView, type SummaryLift } from "@/components/MuscleSummary";
@@ -46,21 +46,16 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
   const liftViews: LiftView[] = [...lifts].map(([id, lift]) => {
     const sessions = earlier.get(id) ?? [];
     const prev = sessions[0];
-    const { verdict, note } = compare(lift.sets, prev?.sets ?? null);
-    const v = volume(lift.sets);
-    const reps = totalReps(lift.sets);
-    const secs = totalSeconds(lift.sets);
-    const amount = v > 0 ? `${v.toLocaleString()} kg` : reps > 0 ? `${reps} reps` : `${Math.round(secs / 6) / 10} min total`;
+    const { verdict, change } = compare(lift.sets, prev?.sets ?? null);
     return {
       exerciseId: id,
       name: lift.name,
       sets: lift.sets.map((s, i) => ({ id: lift.ids[i], text: formatSets([s]) })),
-      summary: formatSets(lift.sets),
-      amount,
+      summary: compactSets(lift.sets),
       verdict,
-      note,
-      last: prev ? `${niceDate(prev.day)}: ${formatSets(prev.sets)}` : null,
-      pr: personalRecord(lift.sets, sessions.map((x) => x.sets)),
+      change,
+      last: prev ? { day: niceDate(prev.day), sets: compactSets(prev.sets) } : null,
+      pr: !!personalRecord(lift.sets, sessions.map((x) => x.sets)),
     };
   });
 

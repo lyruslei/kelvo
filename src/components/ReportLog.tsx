@@ -10,16 +10,14 @@ export type LiftView = {
   exerciseId: number;
   name: string;
   sets: { id: number; text: string }[];
-  summary: string; // "3x10 @ 24kg, 8 @ 26kg"
-  amount: string; // "702 kg" / "45 reps" / "3 min total"
+  summary: string; // "3 × 10 @ 24kg"
   verdict: Verdict;
-  note: string;
-  last: string | null; // "Mon 2 Nov: 3x10 @ 24kg"
-  pr: string | null;
+  change: string; // "+2.5kg", "+2 reps", "Same", "New"
+  last: { day: string; sets: string } | null; // { "Sat 7 Nov", "8, 8, 7 @ 62.5kg" }
+  pr: boolean;
 };
 export type CardioView = { id: number; kind: string; line: string };
 
-const VERDICT_LABEL: Record<Verdict, string> = { up: "Up", same: "Same", down: "Down", first: "New" };
 
 // The session as swipeable panels (Summary, Lifts, Cardio, Plan, This week): swipe left/right
 // or tap a tab. Lifts and Cardio share an Edit mode to delete entries or move them to another day.
@@ -111,9 +109,9 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
                     ) : (
                       <h3><Link href={`/lift/${lift.exerciseId}`} className={styles.liftLink}>{lift.name} ›</Link></h3>
                     )}
-                    <span className={styles.badges}>
-                      {lift.pr && <span className={`${styles.badge} ${styles.pr}`}>PR</span>}
-                      <span className={`${styles.badge} ${styles[lift.verdict]}`}>{VERDICT_LABEL[lift.verdict]}</span>
+                    {/* One badge: PR beats everything, else how it compares with last time. */}
+                    <span className={`${styles.badge} ${lift.pr ? styles.pr : styles[lift.verdict]}`}>
+                      {lift.pr ? `PR ${lift.change}` : lift.change}
                     </span>
                   </div>
                   {editing ? (
@@ -129,9 +127,8 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
                     </ul>
                   ) : (
                     <>
-                      <p className={styles.sets}>{lift.summary} <span className={styles.vol}>· {lift.amount}</span></p>
-                      {lift.pr && <p className={styles.prNote}>New record. {lift.pr}</p>}
-                      <p className={styles.note}>{lift.note}{lift.last && <> · last time {lift.last}</>}</p>
+                      <p className={styles.liftToday}>{lift.summary}</p>
+                      <p className={styles.liftLast}>{lift.last ? <>Last time ({lift.last.day}): {lift.last.sets}</> : "First time logging this"}</p>
                     </>
                   )}
                 </li>

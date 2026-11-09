@@ -63,33 +63,38 @@ const longestHold = (sets: SimpleSet[]) => Math.max(0, ...sets.map((s) => s.dura
 const bestReps = (sets: SimpleSet[]) => Math.max(0, ...sets.map((s) => s.reps ?? 0));
 
 const signed = (n: number, unit = "") => `${n > 0 ? "+" : ""}${n.toLocaleString()}${unit}`;
+const repsWord = (n: number) => `${signed(n)} ${Math.abs(n) === 1 ? "rep" : "reps"}`;
 
 // Weighted: heavier top set wins; same top weight, more reps at it; same top set, more volume.
 // Bodyweight: total reps. Timed holds: total time.
-export function compare(today: SimpleSet[], last: SimpleSet[] | null): { verdict: Verdict; note: string } {
-  if (!last?.length) return { verdict: "first", note: "First time logged" };
+// `change` is the short form for a badge: "+2.5kg", "+2 reps", "-30s", "Same", "New".
+export function compare(today: SimpleSet[], last: SimpleSet[] | null): { verdict: Verdict; note: string; change: string } {
+  if (!last?.length) return { verdict: "first", note: "First time logged", change: "New" };
   const kind = kindOf(today);
 
   if (kind === "time") {
     const d = totalSeconds(today) - totalSeconds(last);
-    if (d === 0) return { verdict: "same", note: `Same ${secs(totalSeconds(today))} total` };
-    return { verdict: d > 0 ? "up" : "down", note: `${signed(d, "s")} total time` };
+    if (d === 0) return { verdict: "same", note: `Same ${secs(totalSeconds(today))} total`, change: "Same" };
+    return { verdict: d > 0 ? "up" : "down", note: `${signed(d, "s")} total time`, change: signed(d, "s") };
   }
   if (kind === "reps" && topWeight(last) === 0) {
     const d = totalReps(today) - totalReps(last);
-    if (d === 0) return { verdict: "same", note: `Same ${totalReps(today)} total reps` };
-    return { verdict: d > 0 ? "up" : "down", note: `${signed(d)} total reps` };
+    if (d === 0) return { verdict: "same", note: `Same ${totalReps(today)} total reps`, change: "Same" };
+    return { verdict: d > 0 ? "up" : "down", note: `${signed(d)} total reps`, change: repsWord(d) };
   }
 
   const tw = topWeight(today);
   const lw = topWeight(last);
-  if (tw !== lw) return { verdict: tw > lw ? "up" : "down", note: `Top set ${signed(Number((tw - lw).toFixed(2)), "kg")}` };
+  if (tw !== lw) {
+    const d = signed(Number((tw - lw).toFixed(2)), "kg");
+    return { verdict: tw > lw ? "up" : "down", note: `Top set ${d}`, change: d };
+  }
   const tr = repsAt(today, tw);
   const lr = repsAt(last, lw);
-  if (tr !== lr) return { verdict: tr > lr ? "up" : "down", note: `${signed(tr - lr)} reps @ ${kg(tw)}` };
+  if (tr !== lr) return { verdict: tr > lr ? "up" : "down", note: `${signed(tr - lr)} reps @ ${kg(tw)}`, change: repsWord(tr - lr) };
   const dv = volume(today) - volume(last);
-  if (dv === 0) return { verdict: "same", note: `Same top set, ${tr} @ ${kg(tw)}` };
-  return { verdict: dv > 0 ? "up" : "down", note: `Same top set, volume ${signed(dv, "kg")}` };
+  if (dv === 0) return { verdict: "same", note: `Same top set, ${tr} @ ${kg(tw)}`, change: "Same" };
+  return { verdict: dv > 0 ? "up" : "down", note: `Same top set, volume ${signed(dv, "kg")}`, change: `${signed(dv, "kg")} vol` };
 }
 
 // A personal record: better than every earlier session. Weighted: heavier than ever,

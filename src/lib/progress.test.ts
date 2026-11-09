@@ -16,23 +16,23 @@ test("first time when there's no last session", () => {
 });
 
 test("heavier top set is up, lighter is down", () => {
-  assert.deepEqual(compare([s(8, 26)], [s(10, 24)]), { verdict: "up", note: "Top set +2kg" });
-  assert.deepEqual(compare([s(10, 22)], [s(10, 24)]), { verdict: "down", note: "Top set -2kg" });
+  assert.deepEqual(compare([s(8, 26)], [s(10, 24)]), { verdict: "up", note: "Top set +2kg", change: "+2kg" });
+  assert.deepEqual(compare([s(10, 22)], [s(10, 24)]), { verdict: "down", note: "Top set -2kg", change: "-2kg" });
 });
 
 test("same top weight: reps at that weight decide", () => {
-  assert.deepEqual(compare([s(11, 24), s(9, 24)], [s(10, 24), s(10, 24)]), { verdict: "up", note: "+1 reps @ 24kg" });
-  assert.deepEqual(compare([s(9, 24)], [s(10, 24)]), { verdict: "down", note: "-1 reps @ 24kg" });
-  assert.deepEqual(compare([s(10, 24)], [s(10, 24)]), { verdict: "same", note: "Same top set, 10 @ 24kg" });
+  assert.deepEqual(compare([s(11, 24), s(9, 24)], [s(10, 24), s(10, 24)]), { verdict: "up", note: "+1 reps @ 24kg", change: "+1 rep" });
+  assert.deepEqual(compare([s(9, 24)], [s(10, 24)]), { verdict: "down", note: "-1 reps @ 24kg", change: "-1 rep" });
+  assert.deepEqual(compare([s(10, 24)], [s(10, 24)]), { verdict: "same", note: "Same top set, 10 @ 24kg", change: "Same" });
 });
 
 test("same top set: total volume breaks the tie", () => {
-  assert.deepEqual(compare([s(12, 30), s(10, 30)], [s(12, 30), s(12, 30)]), { verdict: "down", note: "Same top set, volume -60kg" });
-  assert.deepEqual(compare([s(12, 30), s(12, 30), s(8, 30)], [s(12, 30), s(12, 30)]), { verdict: "up", note: "Same top set, volume +240kg" });
+  assert.deepEqual(compare([s(12, 30), s(10, 30)], [s(12, 30), s(12, 30)]), { verdict: "down", note: "Same top set, volume -60kg", change: "-60kg vol" });
+  assert.deepEqual(compare([s(12, 30), s(12, 30), s(8, 30)], [s(12, 30), s(12, 30)]), { verdict: "up", note: "Same top set, volume +240kg", change: "+240kg vol" });
 });
 
 test("bodyweight lifts compare total reps", () => {
-  assert.deepEqual(compare([s(12, 0), s(10, 0)], [s(10, 0), s(10, 0)]), { verdict: "up", note: "+2 total reps" });
+  assert.deepEqual(compare([s(12, 0), s(10, 0)], [s(10, 0), s(10, 0)]), { verdict: "up", note: "+2 total reps", change: "+2 reps" });
 });
 
 test("volume", () => {
@@ -43,7 +43,7 @@ test("timed holds format and compare by total time", () => {
   const p = (d: number) => ({ reps: null, weight_kg: 0, duration_s: d });
   assert.equal(formatSets([p(60), p(60), p(60)]), "3x1 min");
   assert.equal(formatSets([p(45)]), "45s");
-  assert.deepEqual(compare([p(60), p(60)], [p(45), p(45)]), { verdict: "up", note: "+30s total time" });
+  assert.deepEqual(compare([p(60), p(60)], [p(45), p(45)]), { verdict: "up", note: "+30s total time", change: "+30s" });
 });
 
 test("personal records", () => {

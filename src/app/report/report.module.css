@@ -47,8 +47,8 @@
 .panelSub + .roleLabel { margin-top: 0; }
 .muscles { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .muscle {
-  display: inline-flex; align-items: baseline; gap: 8px;
-  border-radius: var(--radius-pill); font-weight: 700;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: var(--radius-pill); font-weight: 700; line-height: 1;
 }
 .muscle:active { transform: scale(0.97); }
 .muscleMain {
@@ -61,11 +61,10 @@
   background: transparent; color: var(--gray);
   box-shadow: inset 0 0 0 1px var(--card-raised); font-size: 0.92rem; font-weight: 600;
 }
-.muscleSets { font-family: var(--font-body), sans-serif; font-size: 0.8rem; font-weight: 600; color: var(--gray); }
+.muscleSets { font-family: var(--font-body), sans-serif; font-size: 0.8rem; font-weight: 600; color: var(--gray); line-height: 1; }
 .musclePicked { background: var(--yellow); color: var(--white); box-shadow: none; }
 .musclePicked .muscleSets { color: rgba(255, 255, 255, 0.8); }
 
-.showAll { background: transparent; color: var(--yellow); padding: 0.4rem 0; min-height: 40px; font-size: 0.95rem; }
 .summaryLifts { list-style: none; margin: 0; padding: 0; background: var(--card); border-radius: 16px; }
 .summaryLifts li { display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; }
 .summaryLifts li + li { border-top: 1px solid var(--card-raised); }
@@ -83,6 +82,9 @@
 .liftHead { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .sets { margin: 6px 0 0; }
 .vol { color: var(--gray); }
+/* Lifts panel: today's sets big, last time small. */
+.liftToday { margin: 8px 0 0; font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.liftLast { margin: 4px 0 0; color: var(--gray); font-size: 0.9rem; }
 .note { margin: 4px 0 0; color: var(--gray); font-size: 0.9rem; }
 
 .plan { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -116,7 +118,6 @@
 .check input, .setChip input { width: 20px; height: 20px; min-height: 0; accent-color: var(--yellow); flex-shrink: 0; }
 .liftLink { color: inherit; text-decoration: none; }
 .liftLink:hover { color: var(--yellow); }
-.badges { display: inline-flex; gap: 6px; flex-shrink: 0; }
 .pr { background: var(--yellow); color: #000; }
 .prNote { margin: 6px 0 0; color: var(--yellow); font-weight: 600; font-size: 0.95rem; }
 
