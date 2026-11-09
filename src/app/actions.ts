@@ -1,5 +1,4 @@
 "use server";
-import Anthropic from "@anthropic-ai/sdk";
 import { isLoggedIn } from "@/lib/session";
 import { askCoach } from "@/lib/coach";
 import { addDays, niceDate, parseDay, parseRestDay, relativeDay, REST_AHEAD_DAYS, todayIn } from "@/lib/days";
@@ -78,6 +77,7 @@ export async function sendMessage(text: string, viewedDay?: string): Promise<Cha
     return { ok: true, reply: turn.reply };
   } catch (err) {
     console.error("chat failed:", err);
+    const { default: Anthropic } = await import("@anthropic-ai/sdk"); // already loaded if the chat call ran
     if (err instanceof Anthropic.RateLimitError) return { ok: false, error: "Too many messages at once. Try again in a minute." };
     if (err instanceof Anthropic.AuthenticationError) return { ok: false, error: "The Claude API key isn't working. Check ANTHROPIC_API_KEY." };
     if (err instanceof Anthropic.APIError) return { ok: false, error: "Couldn't reach Claude. Try again." };

@@ -30,6 +30,7 @@ export default function BottomNav() {
             href={href}
             className={`${styles.tab} ${i === current ? styles.on : ""}`}
             aria-current={i === current ? "page" : undefined}
+            prefetch={true}
             transitionTypes={i === current ? undefined : [i > current ? "nav-forward" : "nav-back"]}
           >
             <svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true" fill="currentColor">{t.icon}</svg>

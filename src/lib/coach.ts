@@ -1,5 +1,6 @@
 import "server-only";
-import Anthropic from "@anthropic-ai/sdk";
+// Type only: the SDK itself loads on the first chat message, so opening pages skips it.
+import type Anthropic from "@anthropic-ai/sdk";
 import { MUSCLES } from "./muscles";
 
 // The only file that talks to Claude. Returns the raw parsed JSON; turn.ts checks it.
@@ -108,7 +109,7 @@ export type CoachInput = {
 };
 
 let client: Anthropic | null = null;
-const getClient = () => (client ??= new Anthropic({ timeout: 20_000, maxRetries: 1 }));
+const getClient = async () => (client ??= new (await import("@anthropic-ai/sdk")).default({ timeout: 20_000, maxRetries: 1 }));
 
 export async function askCoach({ text, today, day, libraryNames, dayLog, recentLog, plan, restDays, history }: CoachInput): Promise<unknown> {
   const messages: Anthropic.MessageParam[] = history.map((m) => ({ role: m.role === "bot" ? "assistant" : "user", content: m.text }));
@@ -125,7 +126,7 @@ export async function askCoach({ text, today, day, libraryNames, dayLog, recentL
   ].join("\n");
   messages.push({ role: "user", content: `[Context]\n${context}\n\n${text}` });
 
-  const response = await getClient().messages.create({
+  const response = await (await getClient()).messages.create({
     model: process.env.CLAUDE_MODEL || DEFAULT_MODEL,
     max_tokens: 4000,
     system: SYSTEM,
