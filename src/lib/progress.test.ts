@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { compactSets, compare, formatSets, personalRecord, volume } from "./progress.ts";
+import { compactSets, compare, formatSets, nextTarget, personalRecord, volume } from "./progress.ts";
 
 const s = (reps: number, weight_kg: number) => ({ reps, weight_kg });
 
@@ -63,4 +63,28 @@ test("compactSets says the weight once", () => {
   assert.equal(compactSets([s(8, 60), s(6, 70)]), "8 @ 60kg · 6 @ 70kg");
   assert.equal(compactSets([s(15, 0), s(12, 0)]), "15, 12 bodyweight");
   assert.equal(compactSets([s(null, 0, 60), s(null, 0, 60)]), "2 × 1 min");
+});
+
+test("nextTarget: below the top of 6-9, same weight, one more rep on each set under 9", () => {
+  assert.equal(nextTarget([s(9, 24), s(8, 24), s(7, 24)], "dumbbell bench press"), "24kg: 9, 9, 8 reps");
+});
+
+test("nextTarget: every set at 9+, add 2kg per dumbbell and start back at 6", () => {
+  assert.equal(nextTarget([s(9, 24), s(9, 24), s(10, 24)], "dumbbell bench press"), "26kg: 6+ reps x3 sets");
+});
+
+test("nextTarget: barbell and machines go up 2.5kg", () => {
+  assert.equal(nextTarget([s(9, 65), s(9, 65)], "bench press"), "67.5kg: 6+ reps x2 sets");
+});
+
+test("nextTarget: works off the top-weight sets, 2 to 3 of them", () => {
+  // warm-up at 20 ignored; one top set only still plans 2 sets
+  assert.equal(nextTarget([s(12, 20), s(7, 26)], "dumbbell shoulder press"), "26kg: 8, 8 reps");
+  // four top sets plan 3
+  assert.equal(nextTarget([s(9, 24), s(9, 24), s(8, 24), s(6, 24)], "dumbbell bench press"), "24kg: 9, 9, 9 reps");
+});
+
+test("nextTarget: bodyweight adds a rep a set, holds add 5s", () => {
+  assert.equal(nextTarget([s(12, 0), s(10, 0)], "pull-up"), "bodyweight: 13, 11 reps");
+  assert.equal(nextTarget([{ reps: null, weight_kg: 0, duration_s: 60 }, { reps: null, weight_kg: 0, duration_s: 45 }], "plank"), "65s, 50s");
 });

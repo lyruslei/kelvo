@@ -118,6 +118,30 @@ export function personalRecord(today: SimpleSet[], earlier: SimpleSet[][]): stri
   return null;
 }
 
+// Your rep and set range. nextTarget plans inside it (double progression).
+export const REP_RANGE = { min: 6, max: 9 };
+export const SET_RANGE = { min: 2, max: 3 };
+
+// What to do next session, from the last one: "24kg: 9, 9, 8 reps" or "26kg: 6+ reps x3 sets".
+// Weighted: work off the top-weight sets. Every one at the top of the range: add a step
+// (2kg per dumbbell, else 2.5kg) and start back at the bottom. Otherwise same weight, one
+// more rep on each set still under the top. Bodyweight: one more rep a set. Holds: 5s more.
+export function nextTarget(last: SimpleSet[], exercise: string): string {
+  const kind = kindOf(last);
+  if (kind === "time") return last.filter((s) => s.duration_s).map((s) => secs((s.duration_s ?? 0) + 5)).join(", ");
+  if (kind === "reps") return `bodyweight: ${last.filter((s) => s.reps).map((s) => (s.reps ?? 0) + 1).join(", ")} reps`;
+
+  const w = topWeight(last);
+  const work = last.filter((s) => s.reps && s.weight_kg === w).map((s) => s.reps ?? 0);
+  const n = Math.min(SET_RANGE.max, Math.max(SET_RANGE.min, work.length));
+  const reps = Array.from({ length: n }, (_, i) => work[i] ?? work[work.length - 1]);
+  if (reps.every((r) => r >= REP_RANGE.max)) {
+    const step = /dumbbell/i.test(exercise) ? 2 : 2.5;
+    return `${kg(w + step)}: ${REP_RANGE.min}+ reps x${n} sets`;
+  }
+  return `${kg(w)}: ${reps.map((r) => Math.min(REP_RANGE.max, r + 1)).join(", ")} reps`;
+}
+
 // The heaviest set of a session (for the lift history chart): weight, reps at it.
 export function topSet(sets: SimpleSet[]): { weight_kg: number; reps: number; duration_s: number } {
   const w = topWeight(sets);

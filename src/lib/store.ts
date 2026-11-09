@@ -3,7 +3,7 @@ import { db } from "./supabase";
 import { computeGlow, type Muscle } from "./muscles";
 import { addDays, niceDate } from "./days";
 import { groupsHit, type History } from "./schedule";
-import { formatSets, type SimpleSet } from "./progress";
+import { compactSets, formatSets, nextTarget, type SimpleSet } from "./progress";
 import type { CardioRow, Library, SetRow, Turn } from "./turn";
 
 export type Message = { role: "user" | "bot"; text: string };
@@ -157,6 +157,34 @@ export async function loadRecentLog(day: string, days = 14): Promise<string> {
       const runs = cardioRows.filter((c) => c.day === d).map((c) => `${c.kind} ${c.minutes} min${c.distance_km ? ` ${c.distance_km} km` : ""}`);
       return `${niceDate(d)} (${d}): ${[...lifts, ...runs].join("; ")}`;
     })
+    .join("\n");
+}
+
+// The last session of every lift before `day`, however long ago, with the next target:
+// "dumbbell bench press: last Sat 7 Nov 9, 8, 7 @ 24kg; next 24kg: 9, 9, 8 reps".
+// For "what weight should I do on db chest?" and "what did I do last time?".
+export async function loadLastSessions(day: string): Promise<string> {
+  const rows = check(
+    await db()
+      .from("lift_sets")
+      .select("day, reps, weight_kg, duration_s, exercise:exercises(name)")
+      .lt("day", day)
+      .order("day", { ascending: false })
+      .order("set_no")
+      .limit(5000),
+    "load last sessions",
+  ) as unknown as { day: string; reps: number | null; weight_kg: number; duration_s: number | null; exercise: { name: string } }[];
+
+  const last = new Map<string, { day: string; sets: SimpleSet[] }>();
+  for (const r of rows) {
+    const s = last.get(r.exercise.name);
+    if (s && s.day !== r.day) continue; // already have a newer session
+    const entry = s ?? { day: r.day, sets: [] };
+    entry.sets.push({ reps: r.reps, weight_kg: r.weight_kg, duration_s: r.duration_s });
+    last.set(r.exercise.name, entry);
+  }
+  return [...last]
+    .map(([name, s]) => `${name}: last ${niceDate(s.day)} ${compactSets(s.sets)}; next ${nextTarget(s.sets, name)}`)
     .join("\n");
 }
 

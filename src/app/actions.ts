@@ -2,7 +2,7 @@
 import { isLoggedIn } from "@/lib/session";
 import { askCoach } from "@/lib/coach";
 import { addDays, niceDate, parseDay, parseRestDay, relativeDay, REST_AHEAD_DAYS, todayIn } from "@/lib/days";
-import { countSets, deleteEntries, describeDay, loadDay, loadHistory, loadLibrary, loadRecentLog, loadRestDays, moveEntries, saveTurn, setRestDay } from "@/lib/store";
+import { countSets, deleteEntries, describeDay, loadDay, loadHistory, loadLastSessions, loadLibrary, loadRecentLog, loadRestDays, moveEntries, saveTurn, setRestDay } from "@/lib/store";
 import { describePlan, suggestNext } from "@/lib/schedule";
 import { normalizeTurn } from "@/lib/turn";
 
@@ -23,8 +23,8 @@ export async function sendMessage(text: string, viewedDay?: string): Promise<Cha
   const day = viewedDay === undefined ? today : parseDay(viewedDay, today);
   if (!day) return { ok: false, error: "You can only log to today or the past year." };
   try {
-    const [library, logged, history, recentLog, restDays] = await Promise.all([
-      loadLibrary(), loadDay(day), loadHistory(today), loadRecentLog(day), loadRestDays(addDays(day, -14), addDays(today, REST_AHEAD_DAYS)),
+    const [library, logged, history, recentLog, lastSessions, restDays] = await Promise.all([
+      loadLibrary(), loadDay(day), loadHistory(today), loadRecentLog(day), loadLastSessions(day), loadRestDays(addDays(day, -14), addDays(today, REST_AHEAD_DAYS)),
     ]);
     const raw = await askCoach({
       text: msg,
@@ -33,6 +33,7 @@ export async function sendMessage(text: string, viewedDay?: string): Promise<Cha
       libraryNames: [...library.keys()],
       dayLog: describeDay(logged.sets, logged.cardio),
       recentLog,
+      lastSessions,
       plan: describePlan(suggestNext(today, history, 3, restDays), today),
       restDays: [...restDays].sort().map(label),
       history: logged.messages.slice(-20),

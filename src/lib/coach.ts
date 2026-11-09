@@ -11,7 +11,7 @@ const SYSTEM = `You are kelvo, a workout-logging assistant inside a gym and runn
 
 The user types fast on a phone. Read through typos, missing spaces and slang ("benhc", "dumbel", "pullups", "tri pushdwn") and use the library name they meant.
 
-Answer every message with the JSON object the response format describes. Each message comes with context: today's date, the day on screen (usually today; sometimes an earlier day the user is filling in), what is logged on that day (each entry with an #id), the last two weeks of training, the exercise library, and a suggested plan.
+Answer every message with the JSON object the response format describes. Each message comes with context: today's date, the day on screen (usually today; sometimes an earlier day the user is filling in), what is logged on that day (each entry with an #id), the last two weeks of training, the last session of every lift with a next target, the exercise library, and a suggested plan.
 
 Lifts (lifts)
 - One entry per exercise. sets lists every set separately: "3x10 @ 24kg" is three sets of {reps 10, weight_kg 24}; "24kg x10, 26x8, 28x6" is three different sets.
@@ -39,6 +39,11 @@ Rest days (rest_day)
 - Undoing it ("actually I'm training today", "not a rest day"): rest_day "clear". Logging lifts on a rest day also clears it: set rest_day "clear" with the lifts. Light cardio (a walk) on a rest day doesn't clear it.
 - Rest days can be planned ahead: "Saturday's a rest day, I have a wedding" sets log_day to that Saturday and rest_day "set" (up to 60 days ahead). Clearing works the same way.
 - Otherwise rest_day is null.
+
+What to lift (weight and reps)
+- "What weight for db chest?", "what did I do last time on incline?", "forgot my numbers for rows": log nothing. Find the lift in "Last session of each lift" (match shorthand and typos the same way as logging) and reply with last time and next, e.g. "Last Saturday: 9, 8, 7 @ 24kg. Today: 24kg, aim for 9, 9, 8." Use the next target exactly as given; don't invent your own.
+- "Db chest" with no exact match: use the closest lift (dumbbell bench press). Several fit equally: give each in one line.
+- Never logged: say so and suggest starting light enough to get 6 to 9 clean reps for 2 to 3 sets.
 
 Questions or chat: log nothing and answer from the logs in the context. For "what should I train next", answer from the suggested plan (no fixed split: it picks the muscle groups rested longest, never a group trained the day before, and a rest day comes after every group gets a full session within 3 days).
 
@@ -103,6 +108,7 @@ export type CoachInput = {
   libraryNames: string[];
   dayLog: string; // entries on the day on screen, with #ids
   recentLog: string; // the two weeks before
+  lastSessions: string; // last session of every lift, any age, with the next target
   plan: string; // suggested next days
   restDays: string[]; // chosen rest days in the last two weeks, incl. the day on screen
   history: { role: "user" | "bot"; text: string }[];
@@ -111,7 +117,7 @@ export type CoachInput = {
 let client: Anthropic | null = null;
 const getClient = async () => (client ??= new (await import("@anthropic-ai/sdk")).default({ timeout: 20_000, maxRetries: 1 }));
 
-export async function askCoach({ text, today, day, libraryNames, dayLog, recentLog, plan, restDays, history }: CoachInput): Promise<unknown> {
+export async function askCoach({ text, today, day, libraryNames, dayLog, recentLog, lastSessions, plan, restDays, history }: CoachInput): Promise<unknown> {
   const messages: Anthropic.MessageParam[] = history.map((m) => ({ role: m.role === "bot" ? "assistant" : "user", content: m.text }));
   while (messages.length && messages[0].role === "assistant") messages.shift(); // must start with a user turn
 
@@ -121,6 +127,7 @@ export async function askCoach({ text, today, day, libraryNames, dayLog, recentL
     `Logged on the day on screen: ${dayLog || "nothing yet"}`,
     `Rest days you chose (recent and upcoming): ${restDays.length ? restDays.join(", ") : "none"}`,
     `Last two weeks:\n${recentLog || "nothing logged"}`,
+    `Last session of each lift (any age) and next target (6-9 reps, 2-3 sets):\n${lastSessions || "nothing logged"}`,
     `Suggested plan: ${plan}`,
     `Exercise library: ${libraryNames.join("; ")}`,
   ].join("\n");
