@@ -6,7 +6,8 @@ import { GROUP_LABELS, REST_WINDOW_DAYS, suggestNext } from "@/lib/schedule";
 import { pace, summarizeDay } from "@/lib/turn";
 import { MUSCLE_LABELS, type Muscle } from "@/lib/muscles";
 import { compare, formatSets, personalRecord, totalReps, totalSeconds, volume, type SimpleSet } from "@/lib/progress";
-import ReportLog, { type CardioView, type LiftView } from "@/components/ReportLog";
+import ReportPanels, { type CardioView, type LiftView } from "@/components/ReportLog";
+import WeekView from "@/components/WeekView";
 import styles from "./report.module.css";
 
 export const instant = false;
@@ -73,9 +74,9 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
   const soft = muscles.filter(([, g]) => g === "soft").map(([m]) => m);
   const empty = !data.sets.length && !data.cardio.length;
 
-  const upNext = isToday && (
-    <section className={styles.section} aria-labelledby="next">
-      <h2 id="next">Up next</h2>
+  const upNext = isToday ? (
+    <>
+      <h2 className={styles.panelSub}>Up next</h2>
       <ol className={styles.plan}>
         {plan.map((p) => (
           <li key={p.day} className={p.rest ? styles.planRest : undefined}>
@@ -87,7 +88,33 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
       <p className={styles.note}>
         Picks what&apos;s rested longest. Hit every group with full glow within {REST_WINDOW_DAYS} days to earn a rest day.
       </p>
-    </section>
+    </>
+  ) : null;
+
+  const summaryPanel = empty ? (
+    <p className={styles.empty}>Nothing logged on this day. Tell the chat what you did and the report fills in.</p>
+  ) : (
+    <>
+      <dl className={styles.tiles}>
+        <div><dt>Volume</dt><dd>{summary.volumeKg.toLocaleString()}<small> kg</small></dd></div>
+        <div><dt>Sets</dt><dd>{summary.sets}</dd></div>
+        <div><dt>Exercises</dt><dd>{lifts.size}</dd></div>
+        <div><dt>Cardio</dt><dd>{summary.cardioMin}<small> min</small></dd></div>
+      </dl>
+      {muscles.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.panelSub}>Muscles worked</h2>
+          <ul className={styles.chips}>
+            {full.map((m) => <li key={m} className={styles.full}>{MUSCLE_LABELS[m]}</li>)}
+            {soft.map((m) => <li key={m} className={styles.soft}>{MUSCLE_LABELS[m]}</li>)}
+          </ul>
+          <p className={styles.legend}>
+            <span className={`${styles.dot} ${styles.full}`} /> Main target
+            <span className={`${styles.dot} ${styles.soft}`} /> Helped
+          </p>
+        </div>
+      )}
+    </>
   );
 
   return (
@@ -100,48 +127,17 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
         <h1 className={styles.title}>{isToday ? "Today's report" : "Day report"}</h1>
         <p className={styles.date}>{niceDate(day)}</p>
 
-        {empty ? (
-          <>
-            <p className={styles.empty}>Nothing logged on this day. Tell the chat what you did and the report fills in.</p>
-            {upNext}
-          </>
-        ) : (
-          <>
-            <dl className={styles.tiles}>
-              <div><dt>Volume</dt><dd>{summary.volumeKg.toLocaleString()}<small> kg</small></dd></div>
-              <div><dt>Sets</dt><dd>{summary.sets}</dd></div>
-              <div><dt>Exercises</dt><dd>{lifts.size}</dd></div>
-              <div><dt>Cardio</dt><dd>{summary.cardioMin}<small> min</small></dd></div>
-            </dl>
-
-            {muscles.length > 0 && (
-              <section className={styles.section} aria-labelledby="muscles">
-                <h2 id="muscles">Muscles worked</h2>
-                <ul className={styles.chips}>
-                  {full.map((m) => <li key={m} className={styles.full}>{MUSCLE_LABELS[m]}</li>)}
-                  {soft.map((m) => <li key={m} className={styles.soft}>{MUSCLE_LABELS[m]}</li>)}
-                </ul>
-                <p className={styles.legend}>
-                  <span className={`${styles.dot} ${styles.full}`} /> Main target
-                  <span className={`${styles.dot} ${styles.soft}`} /> Helped
-                </p>
-              </section>
-            )}
-
-            {upNext}
-
-            <ReportLog
-              lifts={liftViews}
-              cardio={cardioViews}
-              cardioTotal={summary.cardioKm > 0 ? `${summary.cardioKm} km total ${isToday ? "today" : "that day"}.` : null}
-              day={day}
-              today={today}
-              min={addDays(today, -HISTORY_DAYS)}
-            />
-          </>
-        )}
-
-        <p className={styles.weekLink}><Link href="/week">This week by muscle group ›</Link></p>
+        <ReportPanels
+          summary={summaryPanel}
+          upNext={upNext}
+          week={<><h2 className={styles.panelSub}>The week to {isToday ? "today" : niceDate(day)}</h2><WeekView endDay={day} headingLevel={3} /></>}
+          lifts={liftViews}
+          cardio={cardioViews}
+          cardioTotal={summary.cardioKm > 0 ? `${summary.cardioKm} km total ${isToday ? "today" : "that day"}.` : null}
+          day={day}
+          today={today}
+          min={addDays(today, -HISTORY_DAYS)}
+        />
       </main>
     </div>
   );

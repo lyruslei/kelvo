@@ -98,7 +98,8 @@
 .setOn { box-shadow: inset 0 0 0 1px var(--yellow); }
 
 .toolbar {
-  position: sticky; bottom: 0; margin: 20px calc(-1 * var(--gutter)) 0;
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+  max-width: 520px; margin: 0 auto;
   padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom));
   background: var(--bg); border-top: 1px solid var(--card-raised);
   display: flex; flex-direction: column; gap: 10px;
@@ -127,3 +128,40 @@
 .barFill { display: block; height: 100%; background: var(--yellow); border-radius: 6px; }
 .barValue { font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; }
 .barValue small { color: var(--gray); }
+
+/* ---- Swipe panels ---- */
+.tabs {
+  display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none;
+  margin: 0 calc(-1 * var(--gutter)) 14px; padding: 0 var(--gutter);
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex-shrink: 0; min-height: 40px; padding: 0.4rem 0.75rem;
+  background: var(--card); color: var(--gray); font-size: 0.88rem;
+}
+.tab:active { transform: none; }
+.tabOn { background: var(--yellow); color: #000; }
+
+.track {
+  display: flex; align-items: flex-start;
+  overflow-x: auto; overflow-y: hidden;
+  scroll-snap-type: x mandatory; scroll-behavior: smooth;
+  overscroll-behavior-x: contain; scrollbar-width: none;
+  margin: 0 calc(-1 * var(--gutter));
+  transition: height 220ms ease;
+}
+.track::-webkit-scrollbar { display: none; }
+.panel {
+  flex: 0 0 100%; min-width: 100%;
+  scroll-snap-align: start; scroll-snap-stop: always;
+  padding: 0 var(--gutter) 8px;
+}
+.panel .section:first-child, .panel > .tiles:first-child { margin-top: 0; }
+.panelHead { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.panelHead .panelSub { margin: 0; }
+.panelSub { margin: 0 0 12px; font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 1.4rem; }
+.swipeHint { margin: 10px 0 120px; text-align: center; color: var(--gray); font-size: 0.85rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .track { scroll-behavior: auto; transition: none; }
+}

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { deleteLogged, moveLogged } from "@/app/actions";
 import type { Verdict } from "@/lib/progress";
@@ -21,8 +21,12 @@ export type CardioView = { id: number; kind: string; line: string };
 
 const VERDICT_LABEL: Record<Verdict, string> = { up: "Up", same: "Same", down: "Down", first: "New" };
 
-// The day's lifts and cardio, with an Edit mode to delete entries or move them to another day.
-export default function ReportLog({ lifts, cardio, cardioTotal, day, today, min }: {
+// The report as swipeable panels (Summary, Up next, Lifts, Cardio, Week): swipe left/right
+// or tap a tab. Lifts and Cardio share an Edit mode to delete entries or move them to another day.
+export default function ReportPanels({ summary, upNext, week, lifts, cardio, cardioTotal, day, today, min }: {
+  summary: ReactNode;
+  upNext: ReactNode | null;
+  week: ReactNode;
   lifts: LiftView[];
   cardio: CardioView[];
   cardioTotal: string | null;
@@ -51,8 +55,7 @@ export default function ReportLog({ lifts, cardio, cardioTotal, day, today, min 
     }
     return next;
   };
-  const reset = () => { setSets(new Set()); setRuns(new Set()); setConfirmDelete(false); setError(""); };
-  const stopEditing = () => { reset(); setEditing(false); };
+  const stopEditing = () => { setSets(new Set()); setRuns(new Set()); setConfirmDelete(false); setError(""); setEditing(false); };
 
   const run = (fn: () => Promise<{ ok: boolean; error?: string }>) =>
     start(async () => {
@@ -61,7 +64,6 @@ export default function ReportLog({ lifts, cardio, cardioTotal, day, today, min 
       stopEditing();
       router.refresh();
     });
-
   const onDelete = () => {
     if (!count) return setError("Select something first.");
     if (!confirmDelete) return setConfirmDelete(true);
@@ -74,20 +76,26 @@ export default function ReportLog({ lifts, cardio, cardioTotal, day, today, min 
     run(() => moveLogged([...sets], [...runs], moveTo));
   };
 
-  if (!lifts.length && !cardio.length) return null;
+  const editButton = (
+    <button type="button" className={styles.editToggle} onClick={() => (editing ? stopEditing() : setEditing(true))}>
+      {editing ? "Done" : "Edit"}
+    </button>
+  );
 
-  return (
-    <>
-      <div className={styles.editBar}>
-        <h2 className={styles.editTitle}>{editing ? "Select entries" : "Logged"}</h2>
-        <button type="button" className={styles.editToggle} onClick={() => (editing ? stopEditing() : setEditing(true))}>
-          {editing ? "Done" : "Edit"}
-        </button>
-      </div>
+  // ---- Panels ----
+  const panels: { id: string; label: string; body: ReactNode }[] = [{ id: "summary", label: "Summary", body: summary }];
+  if (upNext) panels.push({ id: "next", label: "Up next", body: upNext });
 
-      {lifts.length > 0 && (
-        <section className={styles.section} aria-labelledby="lifts">
-          <h2 id="lifts" className={styles.sub}>Lifts vs last time</h2>
+  if (lifts.length) {
+    panels.push({
+      id: "lifts",
+      label: "Lifts",
+      body: (
+        <>
+          <div className={styles.panelHead}>
+            <h2 className={styles.panelSub}>{editing ? "Select lifts or sets" : "Lifts vs last time"}</h2>
+            {editButton}
+          </div>
           <ul className={styles.list}>
             {lifts.map((lift) => {
               const ids = lift.sets.map((s) => s.id);
@@ -108,7 +116,6 @@ export default function ReportLog({ lifts, cardio, cardioTotal, day, today, min 
                       <span className={`${styles.badge} ${styles[lift.verdict]}`}>{VERDICT_LABEL[lift.verdict]}</span>
                     </span>
                   </div>
-
                   {editing ? (
                     <ul className={styles.setChips}>
                       {lift.sets.map((s, i) => (
@@ -131,12 +138,21 @@ export default function ReportLog({ lifts, cardio, cardioTotal, day, today, min 
               );
             })}
           </ul>
-        </section>
-      )}
+        </>
+      ),
+    });
+  }
 
-      {cardio.length > 0 && (
-        <section className={styles.section} aria-labelledby="cardio">
-          <h2 id="cardio" className={styles.sub}>Cardio</h2>
+  if (cardio.length) {
+    panels.push({
+      id: "cardio",
+      label: "Cardio",
+      body: (
+        <>
+          <div className={styles.panelHead}>
+            <h2 className={styles.panelSub}>{editing ? "Select sessions" : "Cardio"}</h2>
+            {editButton}
+          </div>
           <ul className={styles.list}>
             {cardio.map((c) => (
               <li key={c.id} className={`${styles.lift} ${editing && runs.has(c.id) ? styles.selected : ""}`}>
@@ -153,8 +169,94 @@ export default function ReportLog({ lifts, cardio, cardioTotal, day, today, min 
             ))}
           </ul>
           {cardioTotal && <p className={styles.note}>{cardioTotal}</p>}
-        </section>
-      )}
+        </>
+      ),
+    });
+  }
+
+  panels.push({ id: "week", label: "Week", body: week });
+
+  // ---- Swiping ----
+  const track = useRef<HTMLDivElement>(null);
+  const panelRefs = useRef<(HTMLElement | null)[]>([]);
+  const [active, setActive] = useState(0);
+  const [height, setHeight] = useState<number | undefined>(undefined);
+
+  // The track takes the height of the panel on screen, so a short panel doesn't leave a gap.
+  const fitHeight = useCallback(() => {
+    const el = panelRefs.current[active];
+    if (el) setHeight(el.offsetHeight);
+  }, [active]);
+  useEffect(() => {
+    fitHeight();
+    const el = panelRefs.current[active];
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(fitHeight);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [active, fitHeight, editing, lifts, cardio]);
+
+  const onScroll = () => {
+    const t = track.current;
+    if (!t) return;
+    const i = Math.round(t.scrollLeft / t.clientWidth);
+    if (i !== active) {
+      setActive(i);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      document.getElementById(`tab-${panels[i]?.id}`)?.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+    }
+  };
+  const goTo = (i: number) => {
+    const t = track.current;
+    if (!t) return;
+    t.scrollTo({ left: i * t.clientWidth, behavior: "smooth" });
+  };
+  const onTabKey = (e: React.KeyboardEvent, i: number) => {
+    if (e.key === "ArrowRight" && i < panels.length - 1) goTo(i + 1);
+    if (e.key === "ArrowLeft" && i > 0) goTo(i - 1);
+  };
+
+  return (
+    <>
+      <div className={styles.tabs} role="tablist" aria-label="Report sections">
+        {panels.map((p, i) => (
+          <button
+            key={p.id}
+            type="button"
+            role="tab"
+            id={`tab-${p.id}`}
+            aria-selected={i === active}
+            aria-controls={`panel-${p.id}`}
+            tabIndex={i === active ? 0 : -1}
+            className={`${styles.tab} ${i === active ? styles.tabOn : ""}`}
+            onClick={() => goTo(i)}
+            onKeyDown={(e) => onTabKey(e, i)}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      <div ref={track} className={styles.track} style={{ height }} onScroll={onScroll}>
+        {panels.map((p, i) => (
+          <section
+            key={p.id}
+            ref={(el) => { panelRefs.current[i] = el; }}
+            id={`panel-${p.id}`}
+            role="tabpanel"
+            aria-labelledby={`tab-${p.id}`}
+            aria-hidden={i !== active}
+            inert={i !== active}
+            className={styles.panel}
+          >
+            {p.body}
+          </section>
+        ))}
+      </div>
+
+      <p className={styles.swipeHint} aria-hidden="true">
+        {active < panels.length - 1 ? `Swipe for ${panels[active + 1].label} ›` : "‹ Swipe back"}
+      </p>
 
       {editing && (
         <div className={styles.toolbar} role="region" aria-label="Edit selected entries">
