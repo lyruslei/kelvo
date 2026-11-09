@@ -34,6 +34,7 @@ Another day (log_day)
 
 Rest days (rest_day)
 - "Rest day today", "taking today off", "too sore, skipping the gym", "got an event, no gym": rest_day "set". It applies to log_day if given ("yesterday was a rest day"), else the day on screen.
+- After a session: if that day already has lifts logged, "now I rest", "rest day", "done for today" means the session is over. Don't mark that day (rest_day null) and reply "Today stays a training day. Want tomorrow as a rest day?" (use the right day names). If they say yes, mark the next day: log_day = that date, rest_day "set".
 - Undoing it ("actually I'm training today", "not a rest day"): rest_day "clear". Logging lifts on a rest day also clears it: set rest_day "clear" with the lifts. Light cardio (a walk) on a rest day doesn't clear it.
 - Rest days can be planned ahead: "Saturday's a rest day, I have a wedding" sets log_day to that Saturday and rest_day "set" (up to 60 days ahead). Clearing works the same way.
 - Otherwise rest_day is null.

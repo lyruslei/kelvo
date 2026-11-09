@@ -2,8 +2,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { isLoggedIn } from "@/lib/session";
 import { askCoach } from "@/lib/coach";
-import { addDays, niceDate, parseDay, parseRestDay, REST_AHEAD_DAYS, todayIn } from "@/lib/days";
-import { deleteEntries, describeDay, loadDay, loadHistory, loadLibrary, loadRecentLog, loadRestDays, moveEntries, saveTurn, setRestDay } from "@/lib/store";
+import { addDays, niceDate, parseDay, parseRestDay, relativeDay, REST_AHEAD_DAYS, todayIn } from "@/lib/days";
+import { countSets, deleteEntries, describeDay, loadDay, loadHistory, loadLibrary, loadRecentLog, loadRestDays, moveEntries, saveTurn, setRestDay } from "@/lib/store";
 import { describePlan, suggestNext } from "@/lib/schedule";
 import { normalizeTurn } from "@/lib/turn";
 
@@ -42,6 +42,13 @@ export async function sendMessage(text: string, viewedDay?: string): Promise<Cha
       sets: new Set(logged.sets.map((s) => s.id)),
       cardio: new Set(logged.cardio.map((c) => c.id)),
     });
+    // Lifts on `d` once this turn is saved (removals only apply to the day on screen).
+    const hasLifts = async (d: string) => {
+      if (d > today) return false;
+      if (d === entryDay && turn.lifts.length) return true;
+      if (d === day) return logged.sets.some((s) => !turn.removeSetIds.includes(s.id));
+      return (await countSets(d)) > 0;
+    };
 
     // "Yesterday I..." goes to that day, if it's a day you're allowed to log to.
     // A future day only works for planning a rest day; workouts can't go there.
@@ -58,6 +65,12 @@ export async function sendMessage(text: string, viewedDay?: string): Promise<Cha
         if (!d) return { ok: false, error: "You can only log to today or the past year." };
         entryDay = restTarget = d;
       }
+    }
+    // A day with lifts is a training day: "rest now" after a session doesn't make it a rest day.
+    if (turn.restDay === "set" && (await hasLifts(restTarget))) {
+      const next = relativeDay(addDays(restTarget, 1), today);
+      turn.restDay = null;
+      turn.reply = `${relativeDay(restTarget, today)} has lifts logged, so it stays a training day. Want ${next === "Tomorrow" ? "tomorrow" : next} as a rest day?`;
     }
     // Rest day first: it's idempotent, so a retry after a failed save is harmless.
     if (turn.restDay) await setRestDay(restTarget, turn.restDay === "set");

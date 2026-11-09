@@ -50,6 +50,12 @@ export async function loadRestDays(fromDay: string, toDay: string): Promise<Set<
   return new Set(rows.map((r) => r.day));
 }
 
+export async function countSets(day: string): Promise<number> {
+  const r = await db().from("lift_sets").select("id", { count: "exact", head: true }).eq("day", day);
+  if (r.error) throw new Error(`count sets: ${r.error.message}`);
+  return r.count ?? 0;
+}
+
 export async function setRestDay(day: string, rest: boolean): Promise<void> {
   if (rest) check(await db().from("rest_days").upsert({ day }, { onConflict: "day", ignoreDuplicates: true }), "save rest day");
   else check(await db().from("rest_days").delete().eq("day", day), "clear rest day");
