@@ -7,15 +7,14 @@
 }
 .md { font-size: 2rem; }
 .lg { font-size: 3.4rem; }
-.i { position: relative; }
-.i::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 0.13em;
-  width: 0.2em;
-  height: 0.2em;
+/* The o: a yellow ring the height of the lowercase letters. */
+.o {
+  display: inline-block;
+  width: 0.56em;
+  height: 0.56em;
+  margin-left: 0.03em;
+  border: 0.14em solid var(--yellow);
   border-radius: 50%;
-  background: var(--yellow);
-  transform: translateX(-50%);
+  box-sizing: border-box;
+  vertical-align: baseline;
 }

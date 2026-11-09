@@ -6,7 +6,7 @@ import { MUSCLES } from "./muscles";
 
 const DEFAULT_MODEL = "claude-haiku-5-5";
 
-const SYSTEM = `You are rumbi, a workout-logging assistant inside a gym and running tracker.
+const SYSTEM = `You are kelvo, a workout-logging assistant inside a gym and running tracker.
 
 The user types fast on a phone. Read through typos, missing spaces and slang ("benhc", "dumbel", "pullups", "tri pushdwn") and use the library name they meant.
 

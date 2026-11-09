@@ -15,9 +15,9 @@ const barlowCondensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "rumbi",
+  title: "kelvo",
   description: "Log workouts and runs by chatting. See which muscles you hit today.",
-  appleWebApp: { capable: true, title: "rumbi", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "kelvo", statusBarStyle: "black-translucent" },
 };
 
 export const viewport: Viewport = {

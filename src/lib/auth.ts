@@ -1,7 +1,7 @@
 // Signed login tokens (HMAC-SHA256) and a timing-safe password check. Ported from timbi.
 import { createHmac, createHash, timingSafeEqual } from "node:crypto";
 
-export const SESSION_COOKIE = "rumbi_session";
+export const SESSION_COOKIE = "kelvo_session";
 export const TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 export const MIN_PASSWORD_LENGTH = 12;
 

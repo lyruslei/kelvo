@@ -1,10 +1,10 @@
 import type { MetadataRoute } from "next";
 
-// Lets you add rumbi to your phone's home screen and open it full screen.
+// Lets you add kelvo to your phone's home screen and open it full screen.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "rumbi",
-    short_name: "rumbi",
+    name: "kelvo",
+    short_name: "kelvo",
     description: "Log lifts and runs by chatting. See which muscles you hit today.",
     start_url: "/",
     display: "standalone",

@@ -1,4 +1,4 @@
--- rumbi schema. Only the Next.js server (service-role key) touches these tables;
+-- kelvo schema. Only the Next.js server (service-role key) touches these tables;
 -- RLS is on with no policies, so the public anon key can read nothing.
 
 -- Muscle groups the body map can light up. Cardio never lights anything.
