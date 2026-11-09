@@ -7,14 +7,11 @@
 }
 .md { font-size: 2rem; }
 .lg { font-size: 3.4rem; }
-/* The o: a yellow ring the height of the lowercase letters. */
+/* The o: the 6-segment ring, the height of the lowercase letters. */
 .o {
   display: inline-block;
-  width: 0.56em;
-  height: 0.56em;
+  width: 0.58em;
+  height: 0.58em;
   margin-left: 0.03em;
-  border: 0.14em solid var(--yellow);
-  border-radius: 50%;
-  box-sizing: border-box;
   vertical-align: baseline;
 }
