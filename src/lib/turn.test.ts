@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeTurn, summarizeDay, canonicalName, type Library } from "./turn.ts";
+import { normalizeTurn, summarizeDay, canonicalName, pace, type Library } from "./turn.ts";
 
 const library: Library = new Map([
   ["incline dumbbell press", { primary: ["chest"], secondary: ["front_delts", "triceps"] }],
@@ -38,7 +38,7 @@ test("bad sets are dropped, and a lift with no good sets is dropped", () => {
     library,
   );
   assert.equal(t.lifts.length, 1);
-  assert.deepEqual(t.lifts[0].sets, [{ reps: 8, weight_kg: 60 }]);
+  assert.deepEqual(t.lifts[0].sets, [{ reps: 8, weight_kg: 60, duration_s: null }]);
 });
 
 test("a lift with no valid primary muscle is dropped", () => {
@@ -60,8 +60,9 @@ test("a given distance wins over the worked-out one", () => {
 });
 
 test("garbage in gives an empty turn with a fallback reply", () => {
-  assert.deepEqual(normalizeTurn(null, library), { lifts: [], cardio: [], reply: "Got it." });
-  assert.deepEqual(normalizeTurn({ lifts: "no", cardio: 3, reply: "" }, library), { lifts: [], cardio: [], reply: "Got it." });
+  const empty = { lifts: [], cardio: [], removeSetIds: [], removeCardioIds: [], logDay: null, reply: "Got it." };
+  assert.deepEqual(normalizeTurn(null, library), empty);
+  assert.deepEqual(normalizeTurn({ lifts: "no", cardio: 3, reply: "" }, library), empty);
 });
 
 test("canonical names", () => {
@@ -84,4 +85,29 @@ test("day summary: volume, sets, cardio and glow", () => {
   assert.equal(s.cardioMin, 15);
   assert.equal(s.cardioKm, 1.05);
   assert.deepEqual(s.glow, { chest: "full", front_delts: "soft", triceps: "full" });
+});
+
+test("timed holds keep seconds and no reps", () => {
+  const t = normalizeTurn(
+    { lifts: [{ exercise: "plank", primary: ["abs"], secondary: [], sets: [{ reps: null, weight_kg: 0, duration_s: 60 }, { reps: null, weight_kg: 0, duration_s: null }] }], cardio: [], reply: "x" },
+    library,
+  );
+  assert.deepEqual(t.lifts[0].sets, [{ reps: null, weight_kg: 0, duration_s: 60 }]);
+});
+
+test("removals only keep ids that were shown for that day", () => {
+  const allowed = { sets: new Set([11, 12]), cardio: new Set([3]) };
+  const t = normalizeTurn({ lifts: [], cardio: [], remove_set_ids: [11, 11, 99, "12"], remove_cardio_ids: [3, 4], reply: "x" }, library, allowed);
+  assert.deepEqual(t.removeSetIds, [11]);
+  assert.deepEqual(t.removeCardioIds, [3]);
+});
+
+test("log_day must look like a date", () => {
+  assert.equal(normalizeTurn({ log_day: "2026-11-08", reply: "x" }, library).logDay, "2026-11-08");
+  assert.equal(normalizeTurn({ log_day: "yesterday", reply: "x" }, library).logDay, null);
+});
+
+test("pace", () => {
+  assert.equal(pace(28, 5), "5:36 /km");
+  assert.equal(pace(15, null), null);
 });

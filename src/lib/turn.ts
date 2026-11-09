@@ -1,7 +1,8 @@
 // Checks and cleans what Claude returns before anything is saved. Pure: no I/O.
 import { MUSCLES, computeGlow, type GlowMap, type Muscle } from "./muscles.ts";
 
-export type LiftSet = { reps: number; weight_kg: number };
+// A set has reps, a duration (timed holds like a plank), or both.
+export type LiftSet = { reps: number | null; weight_kg: number; duration_s: number | null };
 export type Lift = { exercise: string; primary: Muscle[]; secondary: Muscle[]; sets: LiftSet[] };
 export type Cardio = {
   kind: string;
@@ -10,8 +11,16 @@ export type Cardio = {
   speed_kmh: number | null;
   incline_pct: number | null;
 };
-export type Turn = { lifts: Lift[]; cardio: Cardio[]; reply: string };
+export type Turn = {
+  lifts: Lift[];
+  cardio: Cardio[];
+  removeSetIds: number[]; // corrections and "remove the ..." (only ids shown to Claude)
+  removeCardioIds: number[];
+  logDay: string | null; // "yesterday I ..." -> that date (checked again by the server)
+  reply: string;
+};
 export type Library = Map<string, { primary: Muscle[]; secondary: Muscle[] }>;
+export type AllowedIds = { sets: Set<number>; cardio: Set<number> };
 
 const MUSCLE_SET = new Set<string>(MUSCLES);
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
@@ -31,10 +40,12 @@ function cleanLift(raw: unknown, library: Library): Lift | null {
 
   const sets: LiftSet[] = [];
   for (const s of Array.isArray(r.sets) ? r.sets : []) {
-    const reps = inRange((s as LiftSet)?.reps, 1, 1000);
-    const kg = inRange((s as LiftSet)?.weight_kg, 0, 1000);
-    if (reps === null || kg === null) continue;
-    sets.push({ reps: Math.round(reps), weight_kg: round(kg, 2) });
+    const o = (s ?? {}) as Record<string, unknown>;
+    const reps = inRange(o.reps, 1, 1000);
+    const secs = inRange(o.duration_s, 1, 36000);
+    const kg = inRange(o.weight_kg ?? 0, 0, 1000);
+    if ((reps === null && secs === null) || kg === null) continue;
+    sets.push({ reps: reps === null ? null : Math.round(reps), weight_kg: round(kg, 2), duration_s: secs === null ? null : Math.round(secs) });
   }
   if (!sets.length || sets.length > 50) return null;
 
@@ -60,17 +71,33 @@ function cleanCardio(raw: unknown): Cardio | null {
   return { kind, minutes: round(minutes, 1), distance_km: distance, speed_kmh: speed, incline_pct: incline };
 }
 
-export function normalizeTurn(raw: unknown, library: Library): Turn {
+const ids = (v: unknown, allowed: Set<number>): number[] =>
+  Array.isArray(v) ? [...new Set(v.filter((n): n is number => Number.isInteger(n) && allowed.has(n)))] : [];
+
+export function normalizeTurn(raw: unknown, library: Library, allowed: AllowedIds = { sets: new Set(), cardio: new Set() }): Turn {
   const r = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const lifts = (Array.isArray(r.lifts) ? r.lifts : []).map((l) => cleanLift(l, library)).filter((l): l is Lift => !!l);
   const cardio = (Array.isArray(r.cardio) ? r.cardio : []).map(cleanCardio).filter((c): c is Cardio => !!c);
+  const logDay = typeof r.log_day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(r.log_day) ? r.log_day : null;
   const reply = typeof r.reply === "string" && r.reply.trim() ? r.reply.trim().slice(0, 1000) : "Got it.";
-  return { lifts, cardio, reply };
+  return {
+    lifts,
+    cardio,
+    removeSetIds: ids(r.remove_set_ids, allowed.sets),
+    removeCardioIds: ids(r.remove_cardio_ids, allowed.cardio),
+    logDay,
+    reply,
+  };
 }
 
-// ---- Today's numbers, from saved rows ----
+// ---- A day's numbers, from saved rows ----
 
-export type SetRow = { reps: number; weight_kg: number; exercise: { name: string; primary_muscles: Muscle[]; secondary_muscles: Muscle[] } };
+export type SetRow = {
+  reps: number | null;
+  weight_kg: number;
+  duration_s?: number | null;
+  exercise: { name: string; primary_muscles: Muscle[]; secondary_muscles: Muscle[] };
+};
 export type CardioRow = { kind: string; minutes: number; distance_km: number | null; speed_kmh?: number | null; incline_pct?: number | null };
 export type DaySummary = { glow: GlowMap; volumeKg: number; sets: number; cardioMin: number; cardioKm: number };
 
@@ -80,9 +107,16 @@ export function summarizeDay(sets: SetRow[], cardio: CardioRow[]): DaySummary {
   const glow = computeGlow([...byExercise.values()].map((e) => ({ primary: e.primary_muscles, secondary: e.secondary_muscles })));
   return {
     glow,
-    volumeKg: Math.round(sets.reduce((sum, s) => sum + s.reps * s.weight_kg, 0)),
+    volumeKg: Math.round(sets.reduce((sum, s) => sum + (s.reps ?? 0) * s.weight_kg, 0)),
     sets: sets.length,
     cardioMin: Math.round(cardio.reduce((sum, c) => sum + c.minutes, 0)),
     cardioKm: round(cardio.reduce((sum, c) => sum + (c.distance_km ?? 0), 0), 2),
   };
+}
+
+// Running pace, e.g. 5 km in 28 min -> "5:36 /km". Null without a distance.
+export function pace(minutes: number, distanceKm: number | null): string | null {
+  if (!distanceKm || distanceKm <= 0 || minutes <= 0) return null;
+  const secsPerKm = Math.round((minutes * 60) / distanceKm);
+  return `${Math.floor(secsPerKm / 60)}:${String(secsPerKm % 60).padStart(2, "0")} /km`;
 }

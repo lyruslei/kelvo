@@ -1,54 +1,102 @@
-// Compares today's sets of a lift with the last session of the same lift. Pure: no I/O.
+// Compares a day's sets of a lift with earlier sessions of the same lift. Pure: no I/O.
 
-export type SimpleSet = { reps: number; weight_kg: number };
+export type SimpleSet = { reps: number | null; weight_kg: number; duration_s?: number | null };
 export type Verdict = "up" | "same" | "down" | "first";
 
 const kg = (n: number) => `${Number.isInteger(n) ? n : Number(n.toFixed(2))}kg`;
+const secs = (s: number) => (s >= 60 && s % 60 === 0 ? `${s / 60} min` : `${s}s`);
 
-// "3x10 @ 24kg, 8 @ 26kg": runs of identical sets are grouped.
+const setText = ({ reps, weight_kg, duration_s }: SimpleSet) => {
+  const amount = reps ? `${reps}` : duration_s ? secs(duration_s) : "?";
+  const load = weight_kg > 0 ? ` @ ${kg(weight_kg)}` : reps ? " bodyweight" : "";
+  return amount + load;
+};
+const same = (a: SimpleSet, b: SimpleSet) => a.reps === b.reps && a.weight_kg === b.weight_kg && (a.duration_s ?? null) === (b.duration_s ?? null);
+
+// "3x10 @ 24kg, 8 @ 26kg" / "3x60s": runs of identical sets are grouped.
 export function formatSets(sets: SimpleSet[]): string {
   const parts: string[] = [];
   let i = 0;
   while (i < sets.length) {
     let j = i;
-    while (j + 1 < sets.length && sets[j + 1].reps === sets[i].reps && sets[j + 1].weight_kg === sets[i].weight_kg) j++;
+    while (j + 1 < sets.length && same(sets[j + 1], sets[i])) j++;
     const n = j - i + 1;
-    const { reps, weight_kg } = sets[i];
-    const load = weight_kg > 0 ? ` @ ${kg(weight_kg)}` : " bodyweight";
-    parts.push(`${n > 1 ? `${n}x` : ""}${reps}${load}`);
+    parts.push(`${n > 1 ? `${n}x` : ""}${setText(sets[i])}`);
     i = j + 1;
   }
   return parts.join(", ");
 }
 
-const topWeight = (sets: SimpleSet[]) => Math.max(...sets.map((s) => s.weight_kg));
-const repsAt = (sets: SimpleSet[], w: number) => Math.max(...sets.filter((s) => s.weight_kg === w).map((s) => s.reps));
-export const volume = (sets: SimpleSet[]) => Math.round(sets.reduce((sum, s) => sum + s.reps * s.weight_kg, 0));
+export const volume = (sets: SimpleSet[]) => Math.round(sets.reduce((sum, s) => sum + (s.reps ?? 0) * s.weight_kg, 0));
+export const totalReps = (sets: SimpleSet[]) => sets.reduce((sum, s) => sum + (s.reps ?? 0), 0);
+export const totalSeconds = (sets: SimpleSet[]) => sets.reduce((sum, s) => sum + (s.duration_s ?? 0), 0);
 
-// Heavier top set wins. Same top weight: more reps at it wins. Same top set: more volume wins.
-// Bodyweight lifts (all 0kg): total reps decides.
+// What a lift is measured by: weight (any set has kg and reps), reps (bodyweight), or time (holds).
+type Kind = "weight" | "reps" | "time";
+function kindOf(sets: SimpleSet[]): Kind {
+  if (sets.some((s) => s.weight_kg > 0 && s.reps)) return "weight";
+  if (sets.some((s) => s.reps)) return "reps";
+  return "time";
+}
+
+const topWeight = (sets: SimpleSet[]) => Math.max(0, ...sets.filter((s) => s.reps).map((s) => s.weight_kg));
+const repsAt = (sets: SimpleSet[], w: number) => Math.max(0, ...sets.filter((s) => s.weight_kg === w).map((s) => s.reps ?? 0));
+const longestHold = (sets: SimpleSet[]) => Math.max(0, ...sets.map((s) => s.duration_s ?? 0));
+const bestReps = (sets: SimpleSet[]) => Math.max(0, ...sets.map((s) => s.reps ?? 0));
+
+const signed = (n: number, unit = "") => `${n > 0 ? "+" : ""}${n.toLocaleString()}${unit}`;
+
+// Weighted: heavier top set wins; same top weight, more reps at it; same top set, more volume.
+// Bodyweight: total reps. Timed holds: total time.
 export function compare(today: SimpleSet[], last: SimpleSet[] | null): { verdict: Verdict; note: string } {
   if (!last?.length) return { verdict: "first", note: "First time logged" };
+  const kind = kindOf(today);
+
+  if (kind === "time") {
+    const d = totalSeconds(today) - totalSeconds(last);
+    if (d === 0) return { verdict: "same", note: `Same ${secs(totalSeconds(today))} total` };
+    return { verdict: d > 0 ? "up" : "down", note: `${signed(d, "s")} total time` };
+  }
+  if (kind === "reps" && topWeight(last) === 0) {
+    const d = totalReps(today) - totalReps(last);
+    if (d === 0) return { verdict: "same", note: `Same ${totalReps(today)} total reps` };
+    return { verdict: d > 0 ? "up" : "down", note: `${signed(d)} total reps` };
+  }
+
   const tw = topWeight(today);
   const lw = topWeight(last);
-
-  if (tw === 0 && lw === 0) {
-    const tr = today.reduce((s, x) => s + x.reps, 0);
-    const lr = last.reduce((s, x) => s + x.reps, 0);
-    if (tr === lr) return { verdict: "same", note: `Same ${tr} total reps` };
-    return { verdict: tr > lr ? "up" : "down", note: `${tr > lr ? "+" : ""}${tr - lr} total reps` };
-  }
-  if (tw !== lw) {
-    const diff = Number((tw - lw).toFixed(2));
-    return { verdict: tw > lw ? "up" : "down", note: `Top set ${diff > 0 ? "+" : ""}${kg(diff)}` };
-  }
+  if (tw !== lw) return { verdict: tw > lw ? "up" : "down", note: `Top set ${signed(Number((tw - lw).toFixed(2)), "kg")}` };
   const tr = repsAt(today, tw);
   const lr = repsAt(last, lw);
-  if (tr === lr) {
-    // Same top set: total volume breaks the tie.
-    const dv = volume(today) - volume(last);
-    if (dv === 0) return { verdict: "same", note: `Same top set, ${tr} @ ${kg(tw)}` };
-    return { verdict: dv > 0 ? "up" : "down", note: `Same top set, volume ${dv > 0 ? "+" : ""}${dv.toLocaleString()}kg` };
+  if (tr !== lr) return { verdict: tr > lr ? "up" : "down", note: `${signed(tr - lr)} reps @ ${kg(tw)}` };
+  const dv = volume(today) - volume(last);
+  if (dv === 0) return { verdict: "same", note: `Same top set, ${tr} @ ${kg(tw)}` };
+  return { verdict: dv > 0 ? "up" : "down", note: `Same top set, volume ${signed(dv, "kg")}` };
+}
+
+// A personal record: better than every earlier session. Weighted: heavier than ever,
+// or most reps ever at your heaviest weight. Bodyweight: most reps in a set. Timed: longest hold.
+export function personalRecord(today: SimpleSet[], earlier: SimpleSet[][]): string | null {
+  if (!earlier.length) return null; // the first session isn't a record yet
+  const all = earlier.flat();
+  const kind = kindOf(today);
+  if (kind === "time") {
+    const t = longestHold(today);
+    return t > longestHold(all) ? `Longest hold: ${secs(t)}` : null;
   }
-  return { verdict: tr > lr ? "up" : "down", note: `${tr > lr ? "+" : ""}${tr - lr} reps @ ${kg(tw)}` };
+  if (kind === "reps" && topWeight(all) === 0) {
+    const r = bestReps(today);
+    return r > bestReps(all) ? `Most reps: ${r}` : null;
+  }
+  const tw = topWeight(today);
+  const best = topWeight(all);
+  if (tw > best) return `Heaviest: ${kg(tw)}`;
+  if (tw === best && repsAt(today, tw) > repsAt(all, best)) return `Most reps at ${kg(tw)}: ${repsAt(today, tw)}`;
+  return null;
+}
+
+// The heaviest set of a session (for the lift history chart): weight, reps at it.
+export function topSet(sets: SimpleSet[]): { weight_kg: number; reps: number; duration_s: number } {
+  const w = topWeight(sets);
+  return { weight_kg: w, reps: repsAt(sets, w), duration_s: longestHold(sets) };
 }

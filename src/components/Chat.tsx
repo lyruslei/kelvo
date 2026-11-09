@@ -16,8 +16,11 @@ export default function Chat({ initial, day, isToday }: { initial: Message[]; da
   const [pending, startTransition] = useTransition();
   const endRef = useRef<HTMLDivElement>(null);
 
+  // Follow the conversation only once you've sent something. Opening the app stays at
+  // the top, so the body map is the first thing you see, however long the chat is.
+  const sentRef = useRef(false);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    if (sentRef.current) endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, pending]);
 
   function submit(e: React.FormEvent) {
@@ -27,6 +30,7 @@ export default function Chat({ initial, day, isToday }: { initial: Message[]; da
     if (pending) return;
     setError("");
     setText("");
+    sentRef.current = true;
     setMessages((m) => [...m, { role: "user", text: msg }]);
     startTransition(async () => {
       const res = await sendMessage(msg, day);

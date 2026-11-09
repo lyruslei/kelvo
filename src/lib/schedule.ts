@@ -1,6 +1,6 @@
 // Split-free planning: which muscle groups are due next, and when you've earned a rest day. Pure: no I/O.
 import type { GlowMap, Muscle } from "./muscles.ts";
-import { addDays } from "./days.ts";
+import { addDays, relativeDay } from "./days.ts";
 
 export const GROUPS = ["chest", "back", "shoulders", "arms", "legs", "abs"] as const;
 export type Group = (typeof GROUPS)[number];
@@ -21,6 +21,7 @@ const KEY_MUSCLES: Record<Group, Muscle[]> = {
 
 export const REST_WINDOW_DAYS = 3;
 const PER_DAY = 2;
+const MIN_DAYS_BETWEEN = 2; // trained Monday -> earliest again Wednesday
 
 export function groupsHit(glow: GlowMap): Set<Group> {
   return new Set(GROUPS.filter((g) => KEY_MUSCLES[g].some((m) => glow[m] === "full")));
@@ -63,17 +64,23 @@ export function suggestNext(today: string, history: History, count = 3): PlanDay
       for (let back = 1; back <= 60; back++) if (sim.get(addDays(day, -back))?.has(g)) return back;
       return Infinity; // not in the last 60 days
     };
+    // A group trained the day before needs a day off first, so it's never picked.
     const picks = [...GROUPS]
       .map((g, order) => ({ g, ago: lastHit(g), order }))
+      .filter((x) => x.ago >= MIN_DAYS_BETWEEN)
       .sort((a, b) => b.ago - a.ago || a.order - b.order)
       .slice(0, PER_DAY)
       .map((x) => x.g)
       .sort((a, b) => GROUPS.indexOf(a) - GROUPS.indexOf(b));
+    if (!picks.length) {
+      plan.push({ day, rest: true, groups: [] }); // everything was trained yesterday
+      continue;
+    }
     plan.push({ day, rest: false, groups: picks });
     sim.set(day, new Set(picks));
   }
   return plan;
 }
 
-export const describePlan = (plan: PlanDay[]) =>
-  plan.map((p) => `${p.day}: ${p.rest ? "rest day" : p.groups.map((g) => GROUP_LABELS[g]).join(" + ")}`).join("; ");
+export const describePlan = (plan: PlanDay[], today: string) =>
+  plan.map((p) => `${relativeDay(p.day, today)}: ${p.rest ? "rest day" : p.groups.map((g) => GROUP_LABELS[g]).join(" + ")}`).join("; ");

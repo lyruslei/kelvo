@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { compare, formatSets, volume } from "./progress.ts";
+import { compare, formatSets, personalRecord, volume } from "./progress.ts";
 
 const s = (reps: number, weight_kg: number) => ({ reps, weight_kg });
 
@@ -37,4 +37,20 @@ test("bodyweight lifts compare total reps", () => {
 
 test("volume", () => {
   assert.equal(volume([s(10, 24), s(8, 26)]), 448);
+});
+
+test("timed holds format and compare by total time", () => {
+  const p = (d: number) => ({ reps: null, weight_kg: 0, duration_s: d });
+  assert.equal(formatSets([p(60), p(60), p(60)]), "3x1 min");
+  assert.equal(formatSets([p(45)]), "45s");
+  assert.deepEqual(compare([p(60), p(60)], [p(45), p(45)]), { verdict: "up", note: "+30s total time" });
+});
+
+test("personal records", () => {
+  assert.equal(personalRecord([s(5, 100)], []), null); // first session: no record yet
+  assert.equal(personalRecord([s(5, 100)], [[s(5, 95)], [s(8, 90)]]), "Heaviest: 100kg");
+  assert.equal(personalRecord([s(7, 95)], [[s(5, 95)], [s(8, 90)]]), "Most reps at 95kg: 7");
+  assert.equal(personalRecord([s(5, 95)], [[s(5, 95)]]), null);
+  assert.equal(personalRecord([s(15, 0)], [[s(12, 0)]]), "Most reps: 15");
+  assert.equal(personalRecord([{ reps: null, weight_kg: 0, duration_s: 90 }], [[{ reps: null, weight_kg: 0, duration_s: 60 }]]), "Longest hold: 90s");
 });

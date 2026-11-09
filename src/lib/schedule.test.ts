@@ -63,3 +63,13 @@ test("a rest day today shows up first in the plan", () => {
   assert.deepEqual(plan[0], { day: "2026-11-09", rest: true, groups: [] });
   assert.deepEqual(plan[1].groups, ["chest", "back"]);
 });
+
+test("never suggests a group trained the day before", () => {
+  // Hit everything but shoulders today: tomorrow is shoulders alone, not "chest + shoulders".
+  const plan = suggestNext("2026-11-09", h({ "2026-11-09": ["chest", "back", "arms", "legs", "abs"] }));
+  assert.deepEqual(plan[0], { day: "2026-11-10", rest: false, groups: ["shoulders"] });
+  for (const p of plan) {
+    const prev = plan.find((q) => q.day === addDays(p.day, -1));
+    if (prev) for (const g of p.groups) assert.ok(!prev.groups.includes(g), `${g} on back-to-back days`);
+  }
+});

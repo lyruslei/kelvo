@@ -1,8 +1,9 @@
 import "server-only";
 import { db } from "./supabase";
 import { computeGlow, type Muscle } from "./muscles";
-import { addDays } from "./days";
+import { addDays, niceDate } from "./days";
 import { groupsHit, type History } from "./schedule";
+import { formatSets, type SimpleSet } from "./progress";
 import type { CardioRow, Library, SetRow, Turn } from "./turn";
 
 export type Message = { role: "user" | "bot"; text: string };
@@ -20,17 +21,20 @@ export async function loadLibrary(): Promise<Library> {
   return new Map(rows.map((r) => [r.name, { primary: r.primary_muscles, secondary: r.secondary_muscles }]));
 }
 
-export type DaySet = SetRow & { set_no: number; exercise_id: number };
+export type DaySet = SetRow & { id: number; set_no: number; exercise_id: number; duration_s: number | null };
+export type DayCardio = CardioRow & { id: number };
 
-export async function loadDay(day: string): Promise<{ sets: DaySet[]; cardio: CardioRow[]; messages: Message[] }> {
+const SET_COLUMNS = "id, exercise_id, set_no, reps, weight_kg, duration_s, exercise:exercises(name, primary_muscles, secondary_muscles)";
+
+export async function loadDay(day: string): Promise<{ sets: DaySet[]; cardio: DayCardio[]; messages: Message[] }> {
   const [sets, cardio, messages] = await Promise.all([
-    db().from("lift_sets").select("exercise_id, set_no, reps, weight_kg, exercise:exercises(name, primary_muscles, secondary_muscles)").eq("day", day).order("id"),
-    db().from("cardio_sessions").select("kind, minutes, distance_km, speed_kmh, incline_pct").eq("day", day).order("id"),
+    db().from("lift_sets").select(SET_COLUMNS).eq("day", day).order("id"),
+    db().from("cardio_sessions").select("id, kind, minutes, distance_km, speed_kmh, incline_pct").eq("day", day).order("id"),
     db().from("messages").select("role, text").eq("day", day).order("id"),
   ]);
   return {
     sets: check(sets, "load sets") as unknown as DaySet[],
-    cardio: check(cardio, "load cardio") as CardioRow[],
+    cardio: check(cardio, "load cardio") as DayCardio[],
     messages: check(messages, "load messages") as Message[],
   };
 }
@@ -56,56 +60,111 @@ export async function loadHistory(day: string, days = 60): Promise<History> {
   return new Map([...byDay].map(([d, ex]) => [d, groupsHit(computeGlow(ex))]));
 }
 
-// For each exercise, its most recent session before `day` (the sets in order, and the date).
-export async function loadLastSessions(
-  exerciseIds: number[],
-  day: string,
-): Promise<Map<number, { day: string; sets: { reps: number; weight_kg: number }[] }>> {
-  const out = new Map<number, { day: string; sets: { reps: number; weight_kg: number }[] }>();
+export type Session = { day: string; sets: SimpleSet[] };
+
+// Every session of each exercise before `beforeDay` (or all, if omitted), newest first.
+export async function loadSessions(exerciseIds: number[], beforeDay?: string): Promise<Map<number, Session[]>> {
+  const out = new Map<number, Session[]>();
   if (!exerciseIds.length) return out;
+  let q = db().from("lift_sets").select("exercise_id, day, reps, weight_kg, duration_s").in("exercise_id", exerciseIds);
+  if (beforeDay) q = q.lt("day", beforeDay);
   const rows = check(
-    await db()
-      .from("lift_sets")
-      .select("exercise_id, day, reps, weight_kg")
-      .in("exercise_id", exerciseIds)
-      .lt("day", day)
-      .order("day", { ascending: false })
-      .order("set_no")
-      .limit(2000),
-    "load last sessions",
-  ) as { exercise_id: number; day: string; reps: number; weight_kg: number }[];
+    await q.order("day", { ascending: false }).order("set_no").limit(5000),
+    "load sessions",
+  ) as { exercise_id: number; day: string; reps: number | null; weight_kg: number; duration_s: number | null }[];
   for (const r of rows) {
-    const cur = out.get(r.exercise_id);
-    if (!cur) out.set(r.exercise_id, { day: r.day, sets: [{ reps: r.reps, weight_kg: r.weight_kg }] });
-    else if (cur.day === r.day) cur.sets.push({ reps: r.reps, weight_kg: r.weight_kg });
+    const list = out.get(r.exercise_id) ?? [];
+    const set = { reps: r.reps, weight_kg: r.weight_kg, duration_s: r.duration_s };
+    if (list.length && list[list.length - 1].day === r.day) list[list.length - 1].sets.push(set);
+    else list.push({ day: r.day, sets: [set] });
+    out.set(r.exercise_id, list);
   }
   return out;
 }
 
-export async function saveTurn(day: string, turn: Turn, userText: string): Promise<void> {
+export async function loadExercise(id: number): Promise<{ id: number; name: string; primary_muscles: Muscle[]; secondary_muscles: Muscle[] } | null> {
+  const r = await db().from("exercises").select("id, name, primary_muscles, secondary_muscles").eq("id", id).maybeSingle();
+  return check(r, "load exercise") as { id: number; name: string; primary_muscles: Muscle[]; secondary_muscles: Muscle[] } | null;
+}
+
+// Sets per day for the week view: [{day, exercise muscles}].
+export async function loadRange(fromDay: string, toDay: string) {
+  return check(
+    await db()
+      .from("lift_sets")
+      .select("day, reps, weight_kg, exercise:exercises(primary_muscles, secondary_muscles)")
+      .gte("day", fromDay)
+      .lte("day", toDay)
+      .limit(5000),
+    "load range",
+  ) as unknown as { day: string; reps: number | null; weight_kg: number; exercise: { primary_muscles: Muscle[]; secondary_muscles: Muscle[] } }[];
+}
+
+// Compact log of the `days` days before `day`, for Claude ("what did I bench last week",
+// "same as last push day").
+export async function loadRecentLog(day: string, days = 14): Promise<string> {
+  const from = addDays(day, -days);
+  const [sets, cardio] = await Promise.all([
+    db().from("lift_sets").select("day, reps, weight_kg, duration_s, exercise:exercises(name)").gte("day", from).lt("day", day).order("day").order("id").limit(3000),
+    db().from("cardio_sessions").select("day, kind, minutes, distance_km").gte("day", from).lt("day", day).order("day").order("id"),
+  ]);
+  const setRows = check(sets, "load recent sets") as unknown as { day: string; reps: number | null; weight_kg: number; duration_s: number | null; exercise: { name: string } }[];
+  const cardioRows = check(cardio, "load recent cardio") as { day: string; kind: string; minutes: number; distance_km: number | null }[];
+
+  const byDay = new Map<string, Map<string, SimpleSet[]>>();
+  for (const r of setRows) {
+    const d = byDay.get(r.day) ?? new Map<string, SimpleSet[]>();
+    const list = d.get(r.exercise.name) ?? [];
+    list.push({ reps: r.reps, weight_kg: r.weight_kg, duration_s: r.duration_s });
+    d.set(r.exercise.name, list);
+    byDay.set(r.day, d);
+  }
+  const days_ = [...new Set([...byDay.keys(), ...cardioRows.map((c) => c.day)])].sort();
+  return days_
+    .map((d) => {
+      const lifts = [...(byDay.get(d) ?? [])].map(([name, list]) => `${name} ${formatSets(list)}`);
+      const runs = cardioRows.filter((c) => c.day === d).map((c) => `${c.kind} ${c.minutes} min${c.distance_km ? ` ${c.distance_km} km` : ""}`);
+      return `${niceDate(d)} (${d}): ${[...lifts, ...runs].join("; ")}`;
+    })
+    .join("\n");
+}
+
+export async function saveTurn(msgDay: string, entryDay: string, turn: Turn, userText: string): Promise<void> {
   check(
     await db().rpc("log_turn", {
-      p_day: day,
+      p_msg_day: msgDay,
+      p_entry_day: entryDay,
       p_lifts: turn.lifts,
       p_cardio: turn.cardio,
       p_messages: [
         { role: "user", text: userText },
         { role: "bot", text: turn.reply },
       ],
+      p_remove_sets: turn.removeSetIds,
+      p_remove_cardio: turn.removeCardioIds,
     }),
     "save turn",
   );
 }
 
-// Plain-text log of the day, for Claude's context.
-export function describeDay(sets: DaySet[], cardio: CardioRow[]): string {
+export async function deleteEntries(setIds: number[], cardioIds: number[]): Promise<void> {
+  check(await db().rpc("delete_entries", { p_set_ids: setIds, p_cardio_ids: cardioIds }), "delete entries");
+}
+
+export async function moveEntries(setIds: number[], cardioIds: number[], toDay: string): Promise<void> {
+  check(await db().rpc("move_entries", { p_set_ids: setIds, p_cardio_ids: cardioIds, p_to: toDay }), "move entries");
+}
+
+// The day's log with ids, for Claude (so it can correct or remove entries).
+export function describeDay(sets: DaySet[], cardio: DayCardio[]): string {
   const byExercise = new Map<string, string[]>();
   for (const s of sets) {
     const list = byExercise.get(s.exercise.name) ?? [];
-    list.push(`${s.reps}x${s.weight_kg}kg`);
+    const what = [s.reps ? `${s.reps} reps` : "", s.duration_s ? `${s.duration_s}s` : "", s.weight_kg ? `${s.weight_kg}kg` : "bodyweight"].filter(Boolean).join(" ");
+    list.push(`#${s.id} ${what}`);
     byExercise.set(s.exercise.name, list);
   }
   const lifts = [...byExercise].map(([name, list]) => `${name}: ${list.join(", ")}`);
-  const runs = cardio.map((c) => `${c.kind} ${c.minutes} min${c.distance_km ? `, ${c.distance_km} km` : ""}`);
+  const runs = cardio.map((c) => `cardio #${c.id} ${c.kind} ${c.minutes} min${c.distance_km ? `, ${c.distance_km} km` : ""}`);
   return [...lifts, ...runs].join("; ");
 }

@@ -73,3 +73,57 @@
 .same { background: var(--card-raised); color: var(--white); }
 .down { background: transparent; color: var(--yellow-pale); box-shadow: inset 0 0 0 1px var(--yellow-deep); }
 .first { background: var(--card-raised); color: var(--yellow); }
+
+/* ---- Logged entries: edit mode ---- */
+.editBar { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; }
+.editTitle { margin: 0; font-family: var(--font-display), sans-serif; font-weight: 700; font-size: 1.4rem; }
+.editToggle { background: var(--card); color: var(--yellow); padding: 0.5rem 1.1rem; font-size: 0.95rem; }
+.section .sub { font-size: 1.05rem; color: var(--gray); font-family: var(--font-body), sans-serif; font-weight: 600; margin-bottom: 10px; }
+.editBar + .section { margin-top: 12px; }
+
+.selected { box-shadow: inset 0 0 0 2px var(--yellow); }
+.check { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.check input, .setChip input { width: 20px; height: 20px; min-height: 0; accent-color: var(--yellow); flex-shrink: 0; }
+.liftLink { color: inherit; text-decoration: none; }
+.liftLink:hover { color: var(--yellow); }
+.badges { display: inline-flex; gap: 6px; flex-shrink: 0; }
+.pr { background: var(--yellow); color: #000; }
+.prNote { margin: 6px 0 0; color: var(--yellow); font-weight: 600; font-size: 0.95rem; }
+
+.setChips { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.setChip {
+  display: flex; align-items: center; gap: 10px; min-height: 44px;
+  padding: 0 12px; border-radius: 12px; background: var(--card-raised); cursor: pointer;
+}
+.setOn { box-shadow: inset 0 0 0 1px var(--yellow); }
+
+.toolbar {
+  position: sticky; bottom: 0; margin: 20px calc(-1 * var(--gutter)) 0;
+  padding: 12px var(--gutter) calc(12px + env(safe-area-inset-bottom));
+  background: var(--bg); border-top: 1px solid var(--card-raised);
+  display: flex; flex-direction: column; gap: 10px;
+}
+.toolRow { display: flex; align-items: center; gap: 8px; }
+.toolCount { color: var(--gray); margin-left: auto; }
+.toolGhost { background: var(--card); color: var(--white); padding: 0.6rem 1rem; }
+.toolDate { flex: 1; border-radius: 12px; color-scheme: dark; }
+.toolDanger { background: transparent; color: var(--yellow-pale); box-shadow: inset 0 0 0 1px var(--yellow-deep); padding: 0.6rem 1rem; }
+.toolDangerOn { background: var(--yellow); color: #000; box-shadow: none; }
+.toolError { margin: 0; color: var(--yellow-pale); font-size: 0.9rem; }
+
+.weekLink { margin: 28px 0 0; }
+.weekLink a { color: var(--yellow); font-weight: 600; text-decoration: none; display: inline-flex; min-height: 44px; align-items: center; }
+.weekLink a:hover { text-decoration: underline; }
+
+/* ---- Lift history chart ---- */
+.chart { margin: 8px 0 0; background: var(--card); border-radius: 16px; padding: 12px 12px 10px; }
+.chart figcaption { margin: 4px 4px 0; }
+
+/* ---- Week bars ---- */
+.bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.bars li { display: grid; grid-template-columns: 84px 1fr auto; align-items: center; gap: 10px; }
+.barLabel { font-weight: 600; }
+.barTrack { height: 12px; border-radius: 6px; background: var(--card); overflow: hidden; }
+.barFill { display: block; height: 100%; background: var(--yellow); border-radius: 6px; }
+.barValue { font-variant-numeric: tabular-nums; min-width: 72px; text-align: right; }
+.barValue small { color: var(--gray); }
