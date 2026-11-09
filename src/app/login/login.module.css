@@ -1,0 +1,14 @@
+.page {
+  min-height: 100dvh;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.tag { color: var(--gray); margin: 0 0 1.5rem; }
+.form { display: flex; flex-direction: column; gap: 0.75rem; }
+.label { font-size: 0.9rem; color: var(--gray); }
+.error { margin: 0; color: var(--yellow-pale); font-size: 0.95rem; }

@@ -1,0 +1,26 @@
+.map {
+  display: flex;
+  justify-content: center;
+  gap: 6%;
+  height: 100%;
+}
+.figure { height: 100%; width: auto; overflow: visible; }
+
+.body { fill: var(--body-gap); }
+
+.muscle path {
+  fill: var(--idle);
+  transition: fill 400ms ease, opacity 400ms ease, filter 400ms ease;
+}
+
+/* Full glow: main yellow with a halo. */
+.full path {
+  fill: var(--yellow);
+  filter: drop-shadow(0 0 2px rgba(255, 195, 0, 0.45));
+}
+
+/* Soft glow: solid deep yellow, no halo. Solid, not see-through: a see-through
+   yellow over the grey body mixes into a green tint. */
+.soft path {
+  fill: var(--yellow-deep);
+}
