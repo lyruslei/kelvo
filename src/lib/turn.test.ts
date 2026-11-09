@@ -1,6 +1,32 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { normalizeTurn, summarizeDay, canonicalName, pace, type Library } from "./turn.ts";
+import { normalizeTurn, summarizeDay, canonicalName, pace, snapToLibrary, typoDistance, type Library } from "./turn.ts";
+
+const gymLibrary: Library = new Map(
+  ["back squat", "bench press", "incline bench press", "dumbbell curl", "dumbbell row", "barbell row", "hammer curl",
+   "lat pulldown", "pull up", "push up", "lunge", "dips", "skull crusher", "tricep pushdown", "leg curl", "leg press"]
+    .map((n) => [n, { primary: ["chest"], secondary: [] }]),
+);
+
+test("typoDistance counts a swapped pair as one typo", () => {
+  assert.equal(typoDistance("pulldwon", "pulldown"), 1);
+  assert.equal(typoDistance("dumbel", "dumbbell"), 2);
+});
+
+test("misspelled library exercises snap to the library name", () => {
+  for (const [typed, want] of [
+    ["dumbel curl", "dumbbell curl"], ["bench pres", "bench press"], ["lat pulldwon", "lat pulldown"],
+    ["inclin bench press", "incline bench press"], ["pullups", "pull up"], ["push ups", "push up"],
+    ["lunges", "lunge"], ["skull crushers", "skull crusher"], ["tricep pushdwon", "tricep pushdown"],
+    ["hamer curl", "hammer curl"], ["barbel row", "barbell row"],
+  ]) assert.equal(snapToLibrary(typed, gymLibrary), want, typed);
+});
+
+test("real, different exercises are not snapped", () => {
+  for (const name of ["hack squat", "decline bench press", "cable curl", "leg extension", "pec deck", "dip belt"]) {
+    assert.equal(snapToLibrary(name, gymLibrary), name, name);
+  }
+});
 
 const library: Library = new Map([
   ["incline dumbbell press", { primary: ["chest"], secondary: ["front_delts", "triceps"] }],
@@ -60,7 +86,7 @@ test("a given distance wins over the worked-out one", () => {
 });
 
 test("garbage in gives an empty turn with a fallback reply", () => {
-  const empty = { lifts: [], cardio: [], removeSetIds: [], removeCardioIds: [], logDay: null, reply: "Got it." };
+  const empty = { lifts: [], cardio: [], removeSetIds: [], removeCardioIds: [], logDay: null, restDay: null, reply: "Got it." };
   assert.deepEqual(normalizeTurn(null, library), empty);
   assert.deepEqual(normalizeTurn({ lifts: "no", cardio: 3, reply: "" }, library), empty);
 });
@@ -102,6 +128,12 @@ test("removals only keep ids that were shown for that day", () => {
   assert.deepEqual(t.removeCardioIds, [3]);
 });
 
+test("rest_day is set, clear, or nothing", () => {
+  assert.equal(normalizeTurn({ rest_day: "set", reply: "x" }, library).restDay, "set");
+  assert.equal(normalizeTurn({ rest_day: "clear", reply: "x" }, library).restDay, "clear");
+  assert.equal(normalizeTurn({ rest_day: "yes", reply: "x" }, library).restDay, null);
+});
+
 test("log_day must look like a date", () => {
   assert.equal(normalizeTurn({ log_day: "2026-11-08", reply: "x" }, library).logDay, "2026-11-08");
   assert.equal(normalizeTurn({ log_day: "yesterday", reply: "x" }, library).logDay, null);
@@ -110,4 +142,10 @@ test("log_day must look like a date", () => {
 test("pace", () => {
   assert.equal(pace(28, 5), "5:36 /km");
   assert.equal(pace(15, null), null);
+});
+
+test("a typo'd lift in a turn gets the library name and muscles", () => {
+  const t = normalizeTurn({ lifts: [{ exercise: "Incline Dumbell Press", primary: ["biceps"], secondary: [], sets: [{ reps: 8, weight_kg: 24 }] }], reply: "x" }, library);
+  assert.equal(t.lifts[0].exercise, "incline dumbbell press");
+  assert.deepEqual(t.lifts[0].primary, ["chest"]);
 });

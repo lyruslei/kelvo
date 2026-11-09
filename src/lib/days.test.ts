@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseDay, relativeDay, todayIn } from "./days.ts";
+import { parseDay, parseRestDay, relativeDay, todayIn } from "./days.ts";
 
 test("parseDay accepts real past dates within a year", () => {
   assert.equal(parseDay("2026-11-02", "2026-11-09"), "2026-11-02");
@@ -23,4 +23,12 @@ test("todayIn uses the time zone", () => {
   const t = new Date("2026-11-09T17:00:00Z"); // 01:00 next day in Manila
   assert.equal(todayIn("Asia/Manila", t), "2026-11-10");
   assert.equal(todayIn("UTC", t), "2026-11-09");
+});
+
+test("rest days can be planned up to 60 days ahead", () => {
+  assert.equal(parseRestDay("2026-11-14", "2026-11-09"), "2026-11-14");
+  assert.equal(parseRestDay("2027-01-08", "2026-11-09"), "2027-01-08"); // day 60
+  assert.equal(parseRestDay("2027-01-09", "2026-11-09"), null);
+  assert.equal(parseRestDay("2026-11-31", "2026-11-09"), null);
+  assert.equal(parseRestDay("2026-11-02", "2026-11-09"), "2026-11-02"); // past still fine
 });

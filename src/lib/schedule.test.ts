@@ -64,6 +64,13 @@ test("a rest day today shows up first in the plan", () => {
   assert.deepEqual(plan[1].groups, ["chest", "back"]);
 });
 
+test("a rest day you chose today pushes training to tomorrow", () => {
+  const hist = h({ "2026-11-08": ["legs", "abs"] });
+  const plan = suggestNext("2026-11-09", hist, 3, new Set(["2026-11-09"]));
+  assert.deepEqual(plan[0], { day: "2026-11-09", rest: true, groups: [] });
+  assert.deepEqual(plan[1].groups, ["chest", "back"]);
+});
+
 test("never suggests a group trained the day before", () => {
   // Hit everything but shoulders today: tomorrow is shoulders alone, not "chest + shoulders".
   const plan = suggestNext("2026-11-09", h({ "2026-11-09": ["chest", "back", "arms", "legs", "abs"] }));

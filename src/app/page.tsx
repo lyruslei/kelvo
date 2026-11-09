@@ -29,8 +29,9 @@ export default async function TodayPage({ searchParams }: PageProps<"/">) {
 
   // ?preview=push|pull|legs|chest-arms|rest shows a sample body instead of the day's.
   const key = typeof params.preview === "string" ? params.preview : "";
-  // Earned rest day: the sleeping figure, until you log a lift anyway.
-  const isRest = key === "rest" || (!key && !data.sets.length && isRestDay(day, history));
+  // Rest day (chosen in chat, or earned): the sleeping figure, until you log a lift anyway.
+  const earned = !data.rest && isRestDay(day, history);
+  const isRest = key === "rest" || (!key && !data.sets.length && (data.rest || earned));
   const glow = PREVIEWS[key] ? computeGlow(PREVIEWS[key]) : summary.glow;
 
   return (
@@ -48,7 +49,11 @@ export default async function TodayPage({ searchParams }: PageProps<"/">) {
           <div className={styles.body}>
             {isRest ? <RestDay /> : <BodyMap glow={glow} />}
           </div>
-          {isRest && <p className={styles.restNote}>Rest day. Every muscle group got a full session in the 3 days before.</p>}
+          {isRest && (
+            <p className={styles.restNote}>
+              {earned ? "Rest day. Every muscle group got a full session in the 3 days before." : "Rest day. Recover well."}
+            </p>
+          )}
           <dl className={styles.stats}>
             <div><dt>Volume</dt><dd>{summary.volumeKg.toLocaleString()}<small> kg</small></dd></div>
             <div><dt>Sets</dt><dd>{summary.sets}</dd></div>

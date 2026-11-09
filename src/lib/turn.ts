@@ -17,6 +17,7 @@ export type Turn = {
   removeSetIds: number[]; // corrections and "remove the ..." (only ids shown to Claude)
   removeCardioIds: number[];
   logDay: string | null; // "yesterday I ..." -> that date (checked again by the server)
+  restDay: "set" | "clear" | null; // "rest day today" / "actually I'm training today"
   reply: string;
 };
 export type Library = Map<string, { primary: Muscle[]; secondary: Muscle[] }>;
@@ -29,13 +30,66 @@ const inRange = (v: unknown, min: number, max: number): number | null => (isNum(
 
 export const canonicalName = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 
+// ---- Typo-tolerant exercise names ----
+
+// Edit distance counting a swap of two neighbouring letters as one typo ("pulldwon").
+export function typoDistance(a: string, b: string): number {
+  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  }
+  return d[a.length][b.length];
+}
+
+// Typos allowed in one word. Short words must match exactly, so "hack" never becomes "back".
+const wordBudget = (len: number) => (len <= 4 ? 0 : len <= 7 ? 1 : 2);
+const stem = (w: string) => (w.length > 2 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w); // "lunges" = "lunge"
+const wordDistance = (a: string, b: string) => Math.min(typoDistance(a, b), typoDistance(stem(a), stem(b)));
+
+// How many typos away `name` is from `known`, or null if it's too far to be a typo.
+function typosAway(name: string, known: string): number | null {
+  const a = name.split(" "), b = known.split(" ");
+  if (a.length === b.length) {
+    let total = 0;
+    for (let i = 0; i < a.length; i++) {
+      const dist = wordDistance(a[i], b[i]);
+      if (dist > wordBudget(Math.max(a[i].length, b[i].length))) return null;
+      total += dist;
+    }
+    return total;
+  }
+  // Spacing differences: "pullups" = "pull up".
+  const ja = a.map(stem).join(""), jb = b.map(stem).join("");
+  const dist = typoDistance(ja, jb);
+  return dist <= (ja.length >= 6 ? 1 : 0) ? dist : null;
+}
+
+// A misspelled library exercise ("dumbel curl") becomes the library one ("dumbbell curl"),
+// so typos don't create duplicate exercises. Anything else is left as it is.
+export function snapToLibrary(name: string, library: Library): string {
+  if (library.has(name)) return name;
+  let best: string | null = null, bestDist = Infinity, tie = false;
+  for (const known of library.keys()) {
+    const dist = typosAway(name, known);
+    if (dist === null) continue;
+    if (dist < bestDist) [best, bestDist, tie] = [known, dist, false];
+    else if (dist === bestDist) tie = true;
+  }
+  return best && !tie ? best : name;
+}
+
 const muscles = (v: unknown): Muscle[] =>
   Array.isArray(v) ? [...new Set(v.filter((m): m is Muscle => typeof m === "string" && MUSCLE_SET.has(m)))] : [];
 
 function cleanLift(raw: unknown, library: Library): Lift | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
-  const exercise = typeof r.exercise === "string" ? canonicalName(r.exercise) : "";
+  const exercise = typeof r.exercise === "string" ? snapToLibrary(canonicalName(r.exercise), library) : "";
   if (!exercise || exercise.length > 80) return null;
 
   const sets: LiftSet[] = [];
@@ -86,6 +140,7 @@ export function normalizeTurn(raw: unknown, library: Library, allowed: AllowedId
     removeSetIds: ids(r.remove_set_ids, allowed.sets),
     removeCardioIds: ids(r.remove_cardio_ids, allowed.cardio),
     logDay,
+    restDay: r.rest_day === "set" || r.rest_day === "clear" ? r.rest_day : null,
     reply,
   };
 }

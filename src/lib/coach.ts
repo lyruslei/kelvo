@@ -8,6 +8,8 @@ const DEFAULT_MODEL = "claude-haiku-5-5";
 
 const SYSTEM = `You are rumbi, a workout-logging assistant inside a gym and running tracker.
 
+The user types fast on a phone. Read through typos, missing spaces and slang ("benhc", "dumbel", "pullups", "tri pushdwn") and use the library name they meant.
+
 Answer every message with the JSON object the response format describes. Each message comes with context: today's date, the day on screen (usually today; sometimes an earlier day the user is filling in), what is logged on that day (each entry with an #id), the last two weeks of training, the exercise library, and a suggested plan.
 
 Lifts (lifts)
@@ -28,7 +30,13 @@ Fixing mistakes (remove_set_ids, remove_cardio_ids)
 - Only use #ids listed for the day on screen.
 
 Another day (log_day)
-- If the user says new lifts or cardio happened on a different day ("yesterday I...", "on Monday I..."), set log_day to that date (YYYY-MM-DD), worked out from today's date. It can't be in the future or more than a year back. Otherwise log_day is null.
+- If the user says new lifts or cardio happened on a different day ("yesterday I...", "on Monday I..."), set log_day to that date (YYYY-MM-DD), worked out from today's date. Lifts and cardio can't go on a future day or more than a year back. Otherwise log_day is null.
+
+Rest days (rest_day)
+- "Rest day today", "taking today off", "too sore, skipping the gym", "got an event, no gym": rest_day "set". It applies to log_day if given ("yesterday was a rest day"), else the day on screen.
+- Undoing it ("actually I'm training today", "not a rest day"): rest_day "clear". Logging lifts on a rest day also clears it: set rest_day "clear" with the lifts. Light cardio (a walk) on a rest day doesn't clear it.
+- Rest days can be planned ahead: "Saturday's a rest day, I have a wedding" sets log_day to that Saturday and rest_day "set" (up to 60 days ahead). Clearing works the same way.
+- Otherwise rest_day is null.
 
 Questions or chat: log nothing and answer from the logs in the context. For "what should I train next", answer from the suggested plan (no fixed split: it picks the muscle groups rested longest, never a group trained the day before, and a rest day comes after every group gets a full session within 3 days).
 
@@ -45,7 +53,7 @@ const idList = { type: "array", items: { type: "integer" } };
 const SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["lifts", "cardio", "remove_set_ids", "remove_cardio_ids", "log_day", "reply"],
+  required: ["lifts", "cardio", "remove_set_ids", "remove_cardio_ids", "log_day", "rest_day", "reply"],
   properties: {
     lifts: {
       type: "array",
@@ -81,6 +89,7 @@ const SCHEMA = {
     remove_set_ids: idList,
     remove_cardio_ids: idList,
     log_day: nullable({ type: "string" }),
+    rest_day: nullable({ type: "string", enum: ["set", "clear"] }),
     reply: { type: "string" },
   },
 };
@@ -93,13 +102,14 @@ export type CoachInput = {
   dayLog: string; // entries on the day on screen, with #ids
   recentLog: string; // the two weeks before
   plan: string; // suggested next days
+  restDays: string[]; // chosen rest days in the last two weeks, incl. the day on screen
   history: { role: "user" | "bot"; text: string }[];
 };
 
 let client: Anthropic | null = null;
 const getClient = () => (client ??= new Anthropic({ timeout: 20_000, maxRetries: 1 }));
 
-export async function askCoach({ text, today, day, libraryNames, dayLog, recentLog, plan, history }: CoachInput): Promise<unknown> {
+export async function askCoach({ text, today, day, libraryNames, dayLog, recentLog, plan, restDays, history }: CoachInput): Promise<unknown> {
   const messages: Anthropic.MessageParam[] = history.map((m) => ({ role: m.role === "bot" ? "assistant" : "user", content: m.text }));
   while (messages.length && messages[0].role === "assistant") messages.shift(); // must start with a user turn
 
@@ -107,6 +117,7 @@ export async function askCoach({ text, today, day, libraryNames, dayLog, recentL
     `Today: ${today}`,
     `Day on screen: ${day}`,
     `Logged on the day on screen: ${dayLog || "nothing yet"}`,
+    `Rest days you chose (recent and upcoming): ${restDays.length ? restDays.join(", ") : "none"}`,
     `Last two weeks:\n${recentLog || "nothing logged"}`,
     `Suggested plan: ${plan}`,
     `Exercise library: ${libraryNames.join("; ")}`,

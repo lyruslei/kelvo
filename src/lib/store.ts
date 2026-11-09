@@ -26,17 +26,33 @@ export type DayCardio = CardioRow & { id: number };
 
 const SET_COLUMNS = "id, exercise_id, set_no, reps, weight_kg, duration_s, exercise:exercises(name, primary_muscles, secondary_muscles)";
 
-export async function loadDay(day: string): Promise<{ sets: DaySet[]; cardio: DayCardio[]; messages: Message[] }> {
-  const [sets, cardio, messages] = await Promise.all([
+export async function loadDay(day: string): Promise<{ sets: DaySet[]; cardio: DayCardio[]; messages: Message[]; rest: boolean }> {
+  const [sets, cardio, messages, rest] = await Promise.all([
     db().from("lift_sets").select(SET_COLUMNS).eq("day", day).order("id"),
     db().from("cardio_sessions").select("id, kind, minutes, distance_km, speed_kmh, incline_pct").eq("day", day).order("id"),
     db().from("messages").select("role, text").eq("day", day).order("id"),
+    db().from("rest_days").select("day").eq("day", day).maybeSingle(),
   ]);
   return {
     sets: check(sets, "load sets") as unknown as DaySet[],
     cardio: check(cardio, "load cardio") as DayCardio[],
     messages: check(messages, "load messages") as Message[],
+    rest: !!check(rest, "load rest day"),
   };
+}
+
+// Rest days you chose ("rest day today") from `fromDay` to `toDay`, inclusive.
+export async function loadRestDays(fromDay: string, toDay: string): Promise<Set<string>> {
+  const rows = check(
+    await db().from("rest_days").select("day").gte("day", fromDay).lte("day", toDay),
+    "load rest days",
+  ) as { day: string }[];
+  return new Set(rows.map((r) => r.day));
+}
+
+export async function setRestDay(day: string, rest: boolean): Promise<void> {
+  if (rest) check(await db().from("rest_days").upsert({ day }, { onConflict: "day", ignoreDuplicates: true }), "save rest day");
+  else check(await db().from("rest_days").delete().eq("day", day), "clear rest day");
 }
 
 // Groups hit (full glow) on each of the last `days` days up to and including `day`.

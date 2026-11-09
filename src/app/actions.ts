@@ -2,8 +2,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { isLoggedIn } from "@/lib/session";
 import { askCoach } from "@/lib/coach";
-import { niceDate, parseDay, todayIn } from "@/lib/days";
-import { deleteEntries, describeDay, loadDay, loadHistory, loadLibrary, loadRecentLog, moveEntries, saveTurn } from "@/lib/store";
+import { addDays, niceDate, parseDay, parseRestDay, REST_AHEAD_DAYS, todayIn } from "@/lib/days";
+import { deleteEntries, describeDay, loadDay, loadHistory, loadLibrary, loadRecentLog, loadRestDays, moveEntries, saveTurn, setRestDay } from "@/lib/store";
 import { describePlan, suggestNext } from "@/lib/schedule";
 import { normalizeTurn } from "@/lib/turn";
 
@@ -24,7 +24,9 @@ export async function sendMessage(text: string, viewedDay?: string): Promise<Cha
   const day = viewedDay === undefined ? today : parseDay(viewedDay, today);
   if (!day) return { ok: false, error: "You can only log to today or the past year." };
   try {
-    const [library, logged, history, recentLog] = await Promise.all([loadLibrary(), loadDay(day), loadHistory(today), loadRecentLog(day)]);
+    const [library, logged, history, recentLog, restDays] = await Promise.all([
+      loadLibrary(), loadDay(day), loadHistory(today), loadRecentLog(day), loadRestDays(addDays(day, -14), addDays(today, REST_AHEAD_DAYS)),
+    ]);
     const raw = await askCoach({
       text: msg,
       today: label(today),
@@ -32,7 +34,8 @@ export async function sendMessage(text: string, viewedDay?: string): Promise<Cha
       libraryNames: [...library.keys()],
       dayLog: describeDay(logged.sets, logged.cardio),
       recentLog,
-      plan: describePlan(suggestNext(today, history), today),
+      plan: describePlan(suggestNext(today, history, 3, restDays), today),
+      restDays: [...restDays].sort().map(label),
       history: logged.messages.slice(-20),
     });
     const turn = normalizeTurn(raw, library, {
@@ -41,12 +44,23 @@ export async function sendMessage(text: string, viewedDay?: string): Promise<Cha
     });
 
     // "Yesterday I..." goes to that day, if it's a day you're allowed to log to.
+    // A future day only works for planning a rest day; workouts can't go there.
     let entryDay = day;
+    let restTarget = day;
     if (turn.logDay && turn.logDay !== day) {
-      const d = parseDay(turn.logDay, today);
-      if (!d) return { ok: false, error: "You can only log to today or the past year." };
-      entryDay = d;
+      if (turn.logDay > today) {
+        if (turn.lifts.length || turn.cardio.length) return { ok: false, error: "You can't log a workout to a future day." };
+        const d = parseRestDay(turn.logDay, today);
+        if (turn.restDay && !d) return { ok: false, error: `Rest days can be planned up to ${REST_AHEAD_DAYS} days ahead.` };
+        if (d) restTarget = d;
+      } else {
+        const d = parseDay(turn.logDay, today);
+        if (!d) return { ok: false, error: "You can only log to today or the past year." };
+        entryDay = restTarget = d;
+      }
     }
+    // Rest day first: it's idempotent, so a retry after a failed save is harmless.
+    if (turn.restDay) await setRestDay(restTarget, turn.restDay === "set");
     await saveTurn(day, entryDay, turn, msg);
     return { ok: true, reply: turn.reply };
   } catch (err) {

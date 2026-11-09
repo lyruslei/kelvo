@@ -49,14 +49,15 @@ export type PlanDay = { day: string; rest: boolean; groups: Group[] };
 
 // The next `count` days, starting tomorrow if you've trained today, else today.
 // Each training day takes the groups rested longest; ties follow GROUPS order.
-export function suggestNext(today: string, history: History, count = 3): PlanDay[] {
+// `chosenRest`: days you've said are rest days (e.g. "rest day today"); they stay rest.
+export function suggestNext(today: string, history: History, count = 3, chosenRest: ReadonlySet<string> = new Set()): PlanDay[] {
   const sim: History = new Map([...history].map(([d, g]) => [d, new Set(g)]));
   const start = sim.get(today)?.size ? addDays(today, 1) : today;
   const plan: PlanDay[] = [];
 
   for (let i = 0; i < count; i++) {
     const day = addDays(start, i);
-    if (isRestDay(day, sim)) {
+    if (chosenRest.has(day) || isRestDay(day, sim)) {
       plan.push({ day, rest: true, groups: [] });
       continue;
     }

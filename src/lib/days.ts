@@ -21,6 +21,13 @@ export function parseDay(value: unknown, today: string): string | null {
   return value;
 }
 
+// Rest days can be planned ahead ("Saturday's a rest day, I have a wedding").
+export const REST_AHEAD_DAYS = 60;
+export function parseRestDay(value: unknown, today: string): string | null {
+  if (typeof value === "string" && value > today && value <= addDays(today, REST_AHEAD_DAYS) && addDays(value, 0) === value) return value;
+  return parseDay(value, today);
+}
+
 export function niceDate(day: string): string {
   const [y, m, d] = day.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireSession } from "@/lib/session";
 import { addDays, HISTORY_DAYS, niceDate, parseDay, relativeDay, todayIn } from "@/lib/days";
-import { loadDay, loadHistory, loadSessions } from "@/lib/store";
+import { loadDay, loadHistory, loadRestDays, loadSessions } from "@/lib/store";
 import { GROUP_LABELS, REST_WINDOW_DAYS, suggestNext } from "@/lib/schedule";
 import { pace, summarizeDay } from "@/lib/turn";
 import { MUSCLE_LABELS, type Muscle } from "@/lib/muscles";
@@ -18,10 +18,14 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
   const today = todayIn();
   const day = parseDay((await searchParams).day, today) ?? today;
   const isToday = day === today;
-  const [data, history] = await Promise.all([loadDay(day), isToday ? loadHistory(day) : Promise.resolve(null)]);
+  const [data, history, restDays] = await Promise.all([
+    loadDay(day),
+    isToday ? loadHistory(day) : Promise.resolve(null),
+    isToday ? loadRestDays(day, addDays(day, 7)) : Promise.resolve(undefined),
+  ]);
   const summary = summarizeDay(data.sets, data.cardio);
   // Suggestions only make sense looking forward from today.
-  const plan = history ? suggestNext(day, history) : [];
+  const plan = history ? suggestNext(day, history, 3, restDays) : [];
 
   // Group the day's sets by exercise, in the order they were logged.
   const lifts = new Map<number, { name: string; sets: SimpleSet[]; ids: number[] }>();
