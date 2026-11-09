@@ -6,13 +6,13 @@ import styles from "../report/report.module.css";
 
 export const instant = false;
 
-// Stand-alone week page (the report also shows this as its last swipe panel).
+// Stand-alone week page (the session page also shows this as its last swipe panel).
 export default async function WeekPage() {
   await requireSession();
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <Link href="/report" className={styles.back}>‹ Report</Link>
+        <Link href="/report" className={styles.back}>‹ Session</Link>
       </header>
       <main>
         <h1 className={styles.title}>This week</h1>

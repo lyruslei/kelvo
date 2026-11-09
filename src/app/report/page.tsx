@@ -76,7 +76,7 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
 
   const upNext = isToday ? (
     <>
-      <h2 className={styles.panelSub}>Up next</h2>
+      <h2 className={styles.panelSub}>Your next 3 days</h2>
       <ol className={styles.plan}>
         {plan.map((p) => (
           <li key={p.day} className={p.rest ? styles.planRest : undefined}>
@@ -92,7 +92,7 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
   ) : null;
 
   const summaryPanel = empty ? (
-    <p className={styles.empty}>Nothing logged on this day. Tell the chat what you did and the report fills in.</p>
+    <p className={styles.empty}>Nothing logged on this day. Tell the chat what you did and this fills in.</p>
   ) : (
     <>
       <dl className={styles.tiles}>
@@ -124,7 +124,7 @@ export default async function ReportPage({ searchParams }: PageProps<"/report">)
       </header>
 
       <main>
-        <h1 className={styles.title}>{isToday ? "Today's report" : "Day report"}</h1>
+        <h1 className={styles.title}>{isToday ? "Today's session" : "Session"}</h1>
         <p className={styles.date}>{niceDate(day)}</p>
 
         <ReportPanels

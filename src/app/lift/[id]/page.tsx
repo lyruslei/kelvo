@@ -36,7 +36,7 @@ export default async function LiftPage({ params }: { params: Promise<{ id: strin
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
-        <Link href="/report" className={styles.back}>‹ Report</Link>
+        <Link href="/report" className={styles.back}>‹ Session</Link>
       </header>
       <main>
         <h1 className={styles.title} style={{ textTransform: "capitalize" }}>{exercise.name}</h1>

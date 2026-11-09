@@ -21,7 +21,7 @@ export type CardioView = { id: number; kind: string; line: string };
 
 const VERDICT_LABEL: Record<Verdict, string> = { up: "Up", same: "Same", down: "Down", first: "New" };
 
-// The report as swipeable panels (Summary, Up next, Lifts, Cardio, Week): swipe left/right
+// The session as swipeable panels (Summary, Lifts, Cardio, Plan, This week): swipe left/right
 // or tap a tab. Lifts and Cardio share an Edit mode to delete entries or move them to another day.
 export default function ReportPanels({ summary, upNext, week, lifts, cardio, cardioTotal, day, today, min }: {
   summary: ReactNode;
@@ -83,8 +83,8 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
   );
 
   // ---- Panels ----
+  // Order: Summary, Lifts, Cardio, Plan, This week.
   const panels: { id: string; label: string; body: ReactNode }[] = [{ id: "summary", label: "Summary", body: summary }];
-  if (upNext) panels.push({ id: "next", label: "Up next", body: upNext });
 
   if (lifts.length) {
     panels.push({
@@ -174,7 +174,8 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
     });
   }
 
-  panels.push({ id: "week", label: "Week", body: week });
+  if (upNext) panels.push({ id: "plan", label: "Plan", body: upNext });
+  panels.push({ id: "week", label: "This week", body: week });
 
   // ---- Swiping ----
   const track = useRef<HTMLDivElement>(null);
@@ -218,7 +219,7 @@ export default function ReportPanels({ summary, upNext, week, lifts, cardio, car
 
   return (
     <>
-      <div className={styles.tabs} role="tablist" aria-label="Report sections">
+      <div className={styles.tabs} role="tablist" aria-label="Session sections">
         {panels.map((p, i) => (
           <button
             key={p.id}
