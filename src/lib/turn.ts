@@ -48,7 +48,9 @@ export function typoDistance(a: string, b: string): number {
 
 // Typos allowed in one word. Short words must match exactly, so "hack" never becomes "back".
 const wordBudget = (len: number) => (len <= 4 ? 0 : len <= 7 ? 1 : 2);
-const stem = (w: string) => (w.length > 2 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w); // "lunges" = "lunge"
+const stem = (w: string) =>
+  w.length > 4 && w.endsWith("ies") ? w.slice(0, -3) + "y" // "flies" = "fly"
+  : w.length > 2 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w; // "lunges" = "lunge"
 const wordDistance = (a: string, b: string) => Math.min(typoDistance(a, b), typoDistance(stem(a), stem(b)));
 
 // How many typos away `name` is from `known`, or null if it's too far to be a typo.

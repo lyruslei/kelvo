@@ -4,7 +4,7 @@ import { normalizeTurn, summarizeDay, canonicalName, pace, snapToLibrary, typoDi
 
 const gymLibrary: Library = new Map(
   ["back squat", "bench press", "incline bench press", "dumbbell curl", "dumbbell row", "barbell row", "hammer curl",
-   "lat pulldown", "pull up", "push up", "lunge", "dips", "skull crusher", "tricep pushdown", "leg curl", "leg press"]
+   "lat pulldown", "pull up", "push up", "lunge", "dips", "skull crusher", "tricep pushdown", "leg curl", "leg press", "cable fly"]
     .map((n) => [n, { primary: ["chest"], secondary: [] }]),
 );
 
@@ -19,6 +19,7 @@ test("misspelled library exercises snap to the library name", () => {
     ["inclin bench press", "incline bench press"], ["pullups", "pull up"], ["push ups", "push up"],
     ["lunges", "lunge"], ["skull crushers", "skull crusher"], ["tricep pushdwon", "tricep pushdown"],
     ["hamer curl", "hammer curl"], ["barbel row", "barbell row"],
+    ["cable flies", "cable fly"],
   ]) assert.equal(snapToLibrary(typed, gymLibrary), want, typed);
 });
 
