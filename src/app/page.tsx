@@ -29,9 +29,9 @@ export default async function TodayPage({ searchParams }: PageProps<"/">) {
 
   // ?preview=push|pull|legs|chest-arms|rest shows a sample body instead of the day's.
   const key = typeof params.preview === "string" ? params.preview : "";
-  // Rest day (chosen in chat, or earned): the sleeping figure, until you log a lift anyway.
+  // Rest day (chosen in chat, or earned): the sleeping figure, until you log a lift or cardio anyway.
   const earned = !data.rest && isRestDay(day, history);
-  const isRest = key === "rest" || (!key && !data.sets.length && (data.rest || earned));
+  const isRest = key === "rest" || (!key && !data.sets.length && !data.cardio.length && (data.rest || earned));
   const glow = PREVIEWS[key] ? computeGlow(PREVIEWS[key]) : summary.glow;
 
   return (
