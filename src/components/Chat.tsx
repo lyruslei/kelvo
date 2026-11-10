@@ -57,7 +57,7 @@ export default function Chat({ initial, day, isToday }: { initial: Message[]; da
           ),
         )}
         {pending && <p className={`${styles.bot} ${styles.thinking}`}>Logging…</p>}
-        <div ref={endRef} />
+        <div ref={endRef} className={styles.chatEnd} />
       </section>
 
       <form className={styles.composer} onSubmit={submit}>

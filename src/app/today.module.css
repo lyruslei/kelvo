@@ -48,6 +48,8 @@
   overflow-wrap: anywhere;
 }
 .thinking { color: var(--gray); }
+/* Scrolling to the newest message stops above the sticky chat box and tab bar, not behind them. */
+.chatEnd { scroll-margin-bottom: calc(var(--nav-h) + 96px); }
 
 .composer {
   position: sticky; bottom: var(--nav-h);
