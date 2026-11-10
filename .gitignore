@@ -41,3 +41,6 @@ yarn-error.log*
 next-env.d.ts
 !.env.example
 .taste-skill/
+
+# Showcase video footage and renders (large media)
+showcase/
