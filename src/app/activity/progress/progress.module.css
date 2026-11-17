@@ -1,0 +1,44 @@
+.toggle {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  margin: 18px 0 14px; padding: 4px;
+  background: var(--card); border-radius: var(--radius-pill);
+}
+.toggle a {
+  min-height: 40px; display: grid; place-items: center;
+  border-radius: var(--radius-pill);
+  color: var(--gray); font-weight: 600; text-decoration: none;
+}
+.toggle a.on { background: var(--yellow); color: #000; }
+
+.monthBar { display: flex; align-items: center; justify-content: space-between; margin: 0 0 14px; }
+.month { margin: 0; font-size: 1.15rem; font-weight: 700; }
+.arrow {
+  width: 44px; height: 44px; display: grid; place-items: center;
+  color: var(--white); text-decoration: none; font-size: 1.6rem; border-radius: 50%;
+}
+a.arrow:hover { background: var(--card); }
+
+.range { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 14px; }
+.range label { display: flex; flex-direction: column; gap: 2px; background: var(--card); border-radius: 16px; padding: 8px 12px; }
+.range span { color: var(--gray); font-size: 0.8rem; }
+.range select {
+  width: 100%; min-height: 32px; padding: 0;
+  background: transparent; border: 0; color: var(--white);
+  font: inherit; font-weight: 600;
+}
+.range select option { background: var(--card); }
+
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.photo { margin: 0; }
+.photo img {
+  display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover;
+  background: var(--idle); border-radius: 16px;
+}
+.photo figcaption { margin-top: 6px; text-align: center; font-weight: 600; }
+
+.apart { margin: 14px 0 0; text-align: center; color: var(--gray); }
+.apart strong {
+  color: var(--yellow); font-size: 1.4rem;
+  font-family: var(--font-display), sans-serif; font-weight: 700;
+}
+.empty { color: var(--gray); text-align: center; margin: 14px 0 0; }

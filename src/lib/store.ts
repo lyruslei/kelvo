@@ -227,3 +227,31 @@ export function describeDay(sets: DaySet[], cardio: DayCardio[]): string {
   const runs = cardio.map((c) => `cardio #${c.id} ${c.kind} ${c.minutes} min${c.distance_km ? `, ${c.distance_km} km` : ""}`);
   return [...lifts, ...runs].join("; ");
 }
+
+// ---- Progress photos: one front photo per day, in the private "progress-photos" bucket ----
+const PHOTOS = "progress-photos";
+
+// Every day with a photo, oldest first (photos are kept forever, so no date window).
+export async function loadPhotoDays(): Promise<string[]> {
+  const rows = check(await db().from("progress_photos").select("day").order("day"), "load photo days") as { day: string }[];
+  return rows.map((r) => r.day);
+}
+
+// Short-lived links to the given days' photos (the bucket is private).
+export async function photoUrls(days: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const unique = [...new Set(days)];
+  if (!unique.length) return out;
+  const r = await db().storage.from(PHOTOS).createSignedUrls(unique.map((d) => `${d}.jpg`), 60 * 60);
+  if (r.error) throw new Error(`sign photo urls: ${r.error.message}`);
+  for (const s of r.data) if (s.signedUrl && s.path) out.set(s.path.slice(0, 10), s.signedUrl);
+  return out;
+}
+
+// Saves (or replaces) the day's photo.
+export async function savePhoto(day: string, jpeg: ArrayBuffer): Promise<void> {
+  const path = `${day}.jpg`;
+  const up = await db().storage.from(PHOTOS).upload(path, jpeg, { contentType: "image/jpeg", upsert: true });
+  if (up.error) throw new Error(`upload photo: ${up.error.message}`);
+  check(await db().from("progress_photos").upsert({ day, path, updated_at: new Date().toISOString() }), "save photo");
+}

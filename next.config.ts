@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
     // Keep pages you've opened for 5 minutes, so switching back is instant.
     // Logging in chat or editing calls router.refresh(), which drops them, so numbers stay fresh.
     staleTimes: { dynamic: 300, static: 300 },
+    // Progress photos are shrunk on the phone first; this leaves room for a big one.
+    serverActions: { bodySizeLimit: "5mb" },
   },
 };
 

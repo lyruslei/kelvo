@@ -60,3 +60,22 @@ export function monthGrid(m: string): (string | null)[] {
   for (let d = first; monthOf(d) === m; d = addDays(d, 1)) days.push(d);
   return days;
 }
+
+// Whole days from `a` to `b` (b later gives a positive number).
+export function daysApart(a: string, b: string): number {
+  const t = (d: string) => Date.UTC(+d.slice(0, 4), +d.slice(5, 7) - 1, +d.slice(8, 10));
+  return Math.round((t(b) - t(a)) / 86_400_000);
+}
+
+// "Nov 17", or "Nov 17, 2026" with the year.
+export function shortDate(day: string, withYear = false): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("en-US", { day: "numeric", month: "short", ...(withYear && { year: "numeric" }), timeZone: "UTC" });
+}
+
+// "today", "yesterday", "Sep 5", or "Sep 5, 2025" from another year.
+export function dayWord(day: string, today: string): string {
+  if (day === today) return "today";
+  if (day === addDays(today, -1)) return "yesterday";
+  return shortDate(day, day.slice(0, 4) !== today.slice(0, 4));
+}

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { monthGrid, parseDay, parseRestDay, relativeDay, todayIn } from "./days.ts";
+import { daysApart, dayWord, monthGrid, parseDay, parseRestDay, relativeDay, shortDate, todayIn } from "./days.ts";
 
 test("parseDay accepts real past dates within a year", () => {
   assert.equal(parseDay("2026-11-02", "2026-11-09"), "2026-11-02");
@@ -40,4 +40,23 @@ test("monthGrid pads to Sunday and lists every day", () => {
   const feb = monthGrid("2027-02"); // starts Monday: one blank
   assert.equal(feb[0], null);
   assert.equal(feb.filter(Boolean).length, 28);
+});
+
+test("daysApart counts whole days, across months and years", () => {
+  assert.equal(daysApart("2026-11-01", "2026-11-17"), 16);
+  assert.equal(daysApart("2026-09-01", "2026-12-08"), 98);
+  assert.equal(daysApart("2026-12-31", "2027-01-01"), 1);
+  assert.equal(daysApart("2026-11-17", "2026-11-17"), 0);
+});
+
+test("shortDate", () => {
+  assert.equal(shortDate("2026-09-01"), "Sep 1");
+  assert.equal(shortDate("2026-09-01", true), "Sep 1, 2026");
+});
+
+test("dayWord", () => {
+  assert.equal(dayWord("2026-11-17", "2026-11-17"), "today");
+  assert.equal(dayWord("2026-11-16", "2026-11-17"), "yesterday");
+  assert.equal(dayWord("2026-09-05", "2026-11-17"), "Sep 5");
+  assert.equal(dayWord("2025-12-30", "2026-01-02"), "Dec 30, 2025");
 });

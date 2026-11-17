@@ -1,0 +1,35 @@
+/* ---- Save / view screen: covers the page and the tab bar ---- */
+.overlay {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column; gap: 12px;
+  max-width: 520px; margin: 0 auto;
+  padding: calc(env(safe-area-inset-top) + 8px) var(--gutter) calc(env(safe-area-inset-bottom) + 16px);
+  background: var(--bg);
+}
+.top { display: flex; align-items: center; justify-content: space-between; color: var(--gray); }
+.close {
+  width: 44px; height: 44px; min-height: 44px; padding: 0;
+  display: grid; place-items: center;
+  background: transparent; color: var(--white); font-size: 1.8rem; font-weight: 400; line-height: 1;
+}
+.preview {
+  flex: 1; min-height: 0; width: 100%;
+  object-fit: contain;
+  background: var(--idle); border-radius: var(--radius-card);
+}
+.note, .error { margin: 0; text-align: center; font-size: 0.9rem; }
+.note { color: var(--gray); }
+.error { color: var(--yellow-pale); }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* "Saving to today ▾": a date input laid invisibly over the label, so tapping opens the phone's date picker */
+.dayPick {
+  position: relative; display: grid; place-items: center;
+  min-height: 40px; padding: 0 14px; border-radius: var(--radius-pill);
+  background: var(--card); color: var(--gray); font-size: 0.95rem;
+}
+.dayPick strong { color: var(--white); }
+.dayPick input {
+  position: absolute; inset: 0; width: 100%; min-height: 0; padding: 0;
+  opacity: 0; cursor: pointer;
+}

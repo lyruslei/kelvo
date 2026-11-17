@@ -2,8 +2,9 @@ import Link from "next/link";
 import SlideLink from "@/components/SlideLink";
 import PageSlide from "@/components/PageSlide";
 import { requireSession } from "@/lib/session";
+import SnapPhoto from "@/components/SnapPhoto";
 import { addDays, HISTORY_DAYS, monthGrid, monthName, monthOf, shiftMonth, todayIn, WEEKDAYS } from "@/lib/days";
-import { loadCardioDays, loadRange } from "@/lib/store";
+import { loadCardioDays, loadPhotoDays, loadRange } from "@/lib/store";
 import report from "../report/report.module.css";
 import styles from "./activity.module.css";
 
@@ -20,7 +21,8 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
 
   const from = `${month}-01`;
   const to = addDays(`${shiftMonth(month, 1)}-01`, -1);
-  const [sets, cardio] = await Promise.all([loadRange(from, to), loadCardioDays(from, to)]);
+  const [sets, cardio, photoDays] = await Promise.all([loadRange(from, to), loadCardioDays(from, to), loadPhotoDays()]);
+  const snapped = new Set(photoDays.filter((d) => monthOf(d) === month));
 
   const setsOn = new Map<string, number>();
   for (const s of sets) setsOn.set(s.day, (setsOn.get(s.day) ?? 0) + 1);
@@ -54,18 +56,35 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
             {monthGrid(month).map((d, i) => {
               if (!d) return <span key={`b${i}`} />;
               const active = trained.has(d);
-              const label = `${d}: ${active ? "trained" : "rest"}`;
+              const label = `${d}: ${active ? "trained" : "rest"}${snapped.has(d) ? ", progress photo" : ""}`;
               const cls = `${styles.cell} ${active ? styles.active : ""} ${d === today ? styles.today : ""}`;
               return d > today
                 ? <span key={d} className={`${styles.cell} ${styles.future}`}>{Number(d.slice(8))}</span>
-                : <SlideLink key={d} href={d === today ? "/" : `/?day=${d}`} className={cls} aria-label={label} slide="forward">{Number(d.slice(8))}</SlideLink>;
+                : <SlideLink key={d} href={d === today ? "/" : `/?day=${d}`} className={cls} aria-label={label} slide="forward">
+                    {Number(d.slice(8))}
+                    {snapped.has(d) && <span className={styles.dot} />}
+                  </SlideLink>;
             })}
           </div>
 
           <p className={styles.legend} aria-hidden="true">
             <span className={`${styles.swatch} ${styles.active}`} /> Trained
             <span className={styles.swatch} /> Rest
+            <span className={styles.dotKey} /> Photo
           </p>
+
+          {/* Starts on today; the Save screen lets you switch the day. */}
+          <SnapPhoto today={today} taken={photoDays} className={styles.snap}>
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" className={styles.snapIcon}>
+              <path d="M9 4h6l1.5 2H20a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1h3.5zM12 9a4 4 0 100 8 4 4 0 000-8z" fill="currentColor" />
+            </svg>
+            <span className={styles.snapText}>Add progress photo for today</span>
+            <span className={styles.chevron} aria-hidden="true">›</span>
+          </SnapPhoto>
+
+          {photoDays.length > 0 && (
+            <SlideLink href={`/activity/progress?month=${month}`} className={styles.seeProgress} slide="forward">See your progress →</SlideLink>
+          )}
         </main>
       </div>
     </PageSlide>

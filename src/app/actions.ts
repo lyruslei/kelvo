@@ -2,7 +2,7 @@
 import { isLoggedIn } from "@/lib/session";
 import { askCoach } from "@/lib/coach";
 import { addDays, niceDate, parseDay, parseRestDay, relativeDay, REST_AHEAD_DAYS, todayIn } from "@/lib/days";
-import { countSets, deleteEntries, describeDay, loadDay, loadHistory, loadLastSessions, loadLibrary, loadRecentLog, loadRestDays, moveEntries, saveTurn, setRestDay } from "@/lib/store";
+import { countSets, deleteEntries, describeDay, loadDay, loadHistory, loadLastSessions, loadLibrary, loadRecentLog, loadRestDays, moveEntries, savePhoto, saveTurn, setRestDay } from "@/lib/store";
 import { describePlan, suggestNext } from "@/lib/schedule";
 import { normalizeTurn } from "@/lib/turn";
 
@@ -115,5 +115,27 @@ export async function moveLogged(setIds: number[], cardioIds: number[], toDay: s
   } catch (err) {
     console.error("move failed:", err);
     return { ok: false, error: "Couldn't move that. Try again." };
+  }
+}
+
+const MAX_PHOTO = 4 * 1024 * 1024; // the phone shrinks photos to a few hundred KB first
+
+// Saves (or replaces) the progress photo for `day`: today, or a day you opened from the calendar.
+export async function uploadPhoto(form: FormData): Promise<EditResult> {
+  if (!(await isLoggedIn())) return { ok: false, error: "Your session ended. Log in again." };
+  const day = parseDay(form.get("day"), todayIn());
+  if (!day) return { ok: false, error: "You can only add a photo to today or the past year." };
+  const file = form.get("photo");
+  if (!(file instanceof File) || file.size < 100) return { ok: false, error: "Pick a photo first." };
+  if (file.size > MAX_PHOTO) return { ok: false, error: "That photo is too big. Try another." };
+  const bytes = await file.arrayBuffer();
+  const head = new Uint8Array(bytes, 0, 3);
+  if (head[0] !== 0xff || head[1] !== 0xd8 || head[2] !== 0xff) return { ok: false, error: "That file isn't a photo kelvo can read." };
+  try {
+    await savePhoto(day, bytes);
+    return { ok: true };
+  } catch (err) {
+    console.error("photo upload failed:", err);
+    return { ok: false, error: "Couldn't save the photo. Try again." };
   }
 }
