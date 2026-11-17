@@ -29,8 +29,9 @@ async function shrink(file: File): Promise<Blob> {
 
 // A button that opens the phone's own menu (Photo Library / Take Photo / Choose File), then a Save
 // screen: pick the day (today by default), Choose another or Save. Saving replaces that day's photo.
-export default function SnapPhoto({ today, taken, className, children }: {
+export default function SnapPhoto({ today, start, taken, className, children }: {
   today: string;
+  start: string; // the day a new photo starts on (the day selected on the calendar)
   taken: string[]; // days that already have a photo
   className?: string;
   children: ReactNode;
@@ -38,7 +39,7 @@ export default function SnapPhoto({ today, taken, className, children }: {
   const input = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const [preview, setPreview] = useState<{ url: string; blob: Blob } | null>(null);
-  const [day, setDay] = useState(today);
+  const [day, setDay] = useState(start);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
   const open = !!preview || !!error;
@@ -46,7 +47,7 @@ export default function SnapPhoto({ today, taken, className, children }: {
 
   const pick = () => {
     if (!input.current) return;
-    if (!open) setDay(today); // a fresh snap starts on today
+    if (!open) setDay(start); // a fresh snap starts on the selected day
     input.current.value = ""; // so picking the same photo again still fires onChange
     input.current.click();
   };

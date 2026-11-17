@@ -57,3 +57,4 @@ a.arrow:hover { background: var(--card); }
   background: var(--card-raised); color: var(--white); font-weight: 600; text-decoration: none;
 }
 .seeProgress:hover { background: #2F2B24; }
+.selected { outline: 2px solid var(--yellow); outline-offset: 2px; }

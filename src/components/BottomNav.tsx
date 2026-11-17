@@ -21,8 +21,8 @@ export default function BottomNav() {
   return (
     <nav className={styles.bar} aria-label="Main" data-tabbar>
       {TABS.map((t, i) => {
-        // Today and Session follow the day you're looking at.
-        const href = day && i > 0 ? `${t.path}?day=${day}` : t.path;
+        // Every tab follows the day you're looking at (Activity selects it on the calendar).
+        const href = day ? `${t.path}?day=${day}` : t.path;
         return (
           <SlideLink
             key={t.path}

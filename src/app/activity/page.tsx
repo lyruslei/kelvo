@@ -3,21 +3,25 @@ import SlideLink from "@/components/SlideLink";
 import PageSlide from "@/components/PageSlide";
 import { requireSession } from "@/lib/session";
 import SnapPhoto from "@/components/SnapPhoto";
-import { addDays, HISTORY_DAYS, monthGrid, monthName, monthOf, shiftMonth, todayIn, WEEKDAYS } from "@/lib/days";
+import { addDays, dayWord, HISTORY_DAYS, monthGrid, monthName, monthOf, parseDay, shiftMonth, todayIn, WEEKDAYS } from "@/lib/days";
 import { loadCardioDays, loadPhotoDays, loadRange } from "@/lib/store";
 import report from "../report/report.module.css";
 import styles from "./activity.module.css";
 
 export const instant = false;
 
-// The month at a glance: yellow if you trained (any lift or cardio), empty if you rested. Tap a day to open it.
+// The month at a glance: yellow if you trained (any lift or cardio), empty if you rested.
+// Tap a day to select it (?day=); the progress photo button saves to the selected day.
 export default async function ActivityPage({ searchParams }: PageProps<"/activity">) {
   await requireSession();
+  const params = await searchParams;
   const today = todayIn();
   const thisMonth = monthOf(today);
   const oldest = monthOf(addDays(today, -HISTORY_DAYS));
-  const asked = (await searchParams).month;
-  const month = typeof asked === "string" && /^\d{4}-\d{2}$/.test(asked) && asked <= thisMonth && asked >= oldest ? asked : thisMonth;
+  const picked = parseDay(params.day, today);
+  const asked = params.month;
+  const month = typeof asked === "string" && /^\d{4}-\d{2}$/.test(asked) && asked <= thisMonth && asked >= oldest ? asked : picked ? monthOf(picked) : thisMonth;
+  const selected = picked && monthOf(picked) === month ? picked : today;
 
   const from = `${month}-01`;
   const to = addDays(`${shiftMonth(month, 1)}-01`, -1);
@@ -57,13 +61,14 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
               if (!d) return <span key={`b${i}`} />;
               const active = trained.has(d);
               const label = `${d}: ${active ? "trained" : "rest"}${snapped.has(d) ? ", progress photo" : ""}`;
-              const cls = `${styles.cell} ${active ? styles.active : ""} ${d === today ? styles.today : ""}`;
+              const cls = `${styles.cell} ${active ? styles.active : ""} ${d === today ? styles.today : ""} ${d === selected && d !== today ? styles.selected : ""}`;
               return d > today
                 ? <span key={d} className={`${styles.cell} ${styles.future}`}>{Number(d.slice(8))}</span>
-                : <SlideLink key={d} href={d === today ? "/" : `/?day=${d}`} className={cls} aria-label={label} slide="forward">
+                : <Link key={d} href={d === today ? `/activity?month=${month}` : `/activity?month=${month}&day=${d}`} replace scroll={false}
+                    className={cls} aria-label={label} aria-current={d === selected ? "date" : undefined}>
                     {Number(d.slice(8))}
                     {snapped.has(d) && <span className={styles.dot} />}
-                  </SlideLink>;
+                  </Link>;
             })}
           </div>
 
@@ -73,12 +78,12 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
             <span className={styles.dotKey} /> Photo
           </p>
 
-          {/* Starts on today; the Save screen lets you switch the day. */}
-          <SnapPhoto today={today} taken={photoDays} className={styles.snap}>
+          {/* Starts on the selected day; the Save screen can still switch it. */}
+          <SnapPhoto today={today} start={selected} taken={photoDays} className={styles.snap}>
             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" className={styles.snapIcon}>
               <path d="M9 4h6l1.5 2H20a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1V7a1 1 0 011-1h3.5zM12 9a4 4 0 100 8 4 4 0 000-8z" fill="currentColor" />
             </svg>
-            <span className={styles.snapText}>Add progress photo for today</span>
+            <span className={styles.snapText}>Add progress photo for {dayWord(selected, today)}</span>
             <span className={styles.chevron} aria-hidden="true">›</span>
           </SnapPhoto>
 
