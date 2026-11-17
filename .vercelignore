@@ -1,0 +1,2 @@
+# The CLI uploads git-ignored files too; keep the showcase video project (its own Remotion deps) out of the app build.
+showcase/
