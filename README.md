@@ -2,7 +2,9 @@
 
 A workout tracker you talk to. Type what you did the way you'd text a friend, and kelvo logs it, lights up the muscles you trained on a body map, and tells you what to train next.
 
-**▶ [Watch the showcase video](https://lnkd.in/p/g8vxExjF)**
+[![kelvo showcase](docs/showcase.gif)](https://lnkd.in/p/g8vxExjF)
+
+**▶ [Watch the full video with sound](https://lnkd.in/p/g8vxExjF)**
 
 > "bench 3x8 @ 60, then incline db 22s 10 9 8, 20 min incline treadmill at 5.5"
 
