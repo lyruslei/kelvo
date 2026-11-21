@@ -2,6 +2,8 @@
 
 A workout tracker you talk to. Type what you did the way you'd text a friend, and kelvo logs it, lights up the muscles you trained on a body map, and tells you what to train next.
 
+**▶ [Watch the showcase video](https://lnkd.in/p/g8vxExjF)**
+
 > "bench 3x8 @ 60, then incline db 22s 10 9 8, 20 min incline treadmill at 5.5"
 
 That one message becomes three exercises, seven sets and a cardio session, each saved as a separate row in the database. Typos, shorthand, pounds and corrections ("the bench was 65 not 60") all work.
