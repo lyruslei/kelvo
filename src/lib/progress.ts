@@ -122,7 +122,7 @@ export function personalRecord(today: SimpleSet[], earlier: SimpleSet[][]): stri
 export const REP_RANGE = { min: 6, max: 9 };
 export const SET_RANGE = { min: 2, max: 3 };
 
-// What to do next session, from the last one: "24kg: 9, 9, 8 reps" or "26kg: 6+ reps x3 sets".
+// What to do next session, from the last one: "24kg: 9, 9, 8 reps" or "26kg: 6, 6, 6 reps".
 // Weighted: work off the top-weight sets. Every one at the top of the range: add a step
 // (2kg per dumbbell, else 2.5kg) and start back at the bottom. Otherwise same weight, one
 // more rep on each set still under the top. Bodyweight: one more rep a set. Holds: 5s more.
@@ -137,7 +137,7 @@ export function nextTarget(last: SimpleSet[], exercise: string): string {
   const reps = Array.from({ length: n }, (_, i) => work[i] ?? work[work.length - 1]);
   if (reps.every((r) => r >= REP_RANGE.max)) {
     const step = /dumbbell/i.test(exercise) ? 2 : 2.5;
-    return `${kg(w + step)}: ${REP_RANGE.min}+ reps x${n} sets`;
+    return `${kg(w + step)}: ${Array(n).fill(REP_RANGE.min).join(", ")} reps`;
   }
   return `${kg(w)}: ${reps.map((r) => Math.min(REP_RANGE.max, r + 1)).join(", ")} reps`;
 }

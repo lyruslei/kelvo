@@ -1,7 +1,7 @@
 import "server-only";
 // Type only: the SDK itself loads on the first chat message, so opening pages skips it.
 import type Anthropic from "@anthropic-ai/sdk";
-import { MUSCLES } from "./muscles";
+import { MUSCLES } from "./muscles.ts";
 
 // The only file that talks to Claude. Returns the raw parsed JSON; turn.ts checks it.
 
@@ -22,6 +22,15 @@ Lifts (lifts)
 - If reps or sets are missing and can't be inferred, log nothing for that exercise and ask.
 - "Same as last push day", "repeat Monday's workout": copy those sets from the recent log.
 
+Follow-ups (which lift a message is about)
+- The conversation is the source of truth for which lift is meant. The logs are only for numbers.
+- A message with numbers but no lift name ("ok i did 9.7.8", "just did 886", "did 30kg 8,7,6") is about the lift in the conversation's last exchange: the one the user just asked about or you just gave numbers for. Never pick a lift from the day's log or the last two weeks because its numbers look similar.
+- "That", "it", "for that", "next time" mean that same lift. A new lift name in the message switches to it.
+- Reps written as digits run together or with dots ("886", "9.7.8", "9 7 8") are one number per set: 8, 8, 6.
+- Weight for a follow-up: the weight in the message, else the weight the user said they'd use in the last exchange ("I'll do 12.5kg"), else the weight in your last target for that lift.
+- Last exchange gave several lifts (e.g. barbell curl or hammer curl) and the message doesn't say which: log nothing and ask which one.
+- Name the lift in every reply, so the next follow-up has it.
+
 Cardio (cardio)
 - Runs, walks, treadmill, bike, rower, stairs and the like go here, never in lifts. Record kind (e.g. "incline treadmill", "outdoor run"), minutes, and speed_kmh, incline_pct and distance_km when given (null otherwise). Convert mph to km/h (x 1.609).
 
@@ -36,12 +45,13 @@ Another day (log_day)
 Rest days (rest_day)
 - "Rest day today", "taking today off", "too sore, skipping the gym", "got an event, no gym": rest_day "set". It applies to log_day if given ("yesterday was a rest day"), else the day on screen.
 - After a session: if that day already has lifts logged, "now I rest", "rest day", "done for today" means the session is over. Don't mark that day (rest_day null) and reply "Today stays a training day. Want tomorrow as a rest day?" (use the right day names). If they say yes, mark the next day: log_day = that date, rest_day "set".
+- Only talk about rest or training days when the user's message is about resting. Never add "Today stays a training day" to a logging reply.
 - Undoing it ("actually I'm training today", "not a rest day"): rest_day "clear". Logging lifts on a rest day also clears it: set rest_day "clear" with the lifts. Light cardio (a walk) on a rest day doesn't clear it.
 - Rest days can be planned ahead: "Saturday's a rest day, I have a wedding" sets log_day to that Saturday and rest_day "set" (up to 60 days ahead). Clearing works the same way.
 - Otherwise rest_day is null.
 
 What to lift (weight and reps)
-- "What weight for db chest?", "what did I do last time on incline?", "forgot my numbers for rows": log nothing. Find the lift in "Last session of each lift" (match shorthand and typos the same way as logging) and reply with last time and next, e.g. "Last Saturday: 9, 8, 7 @ 24kg. Today: 24kg, aim for 9, 9, 8." Use the next target exactly as given; don't invent your own.
+- "What weight for db chest?", "what did I do last time on incline?", "forgot my numbers for rows": log nothing. Find the lift in "Last session of each lift" (match shorthand and typos the same way as logging) and reply with the lift, last time and next, e.g. "Cable fly last Saturday: 9, 8, 7 @ 24kg. Today: 24kg, aim for 9, 9, 8." Today's weight and reps are the next target's, copied exactly: "next 27.5kg: 6, 6, 6 reps" becomes "Today: 27.5kg, aim for 6, 6, 6." Never mix in last time's weight, and don't invent your own target.
 - "Db chest" with no exact match: use the closest lift (dumbbell bench press). Several fit equally: give each in one line.
 - Never logged: say so and suggest starting light enough to get 6 to 9 clean reps for 2 to 3 sets.
 
@@ -117,7 +127,10 @@ export type CoachInput = {
 let client: Anthropic | null = null;
 const getClient = async () => (client ??= new (await import("@anthropic-ai/sdk")).default({ timeout: 20_000, maxRetries: 1 }));
 
-export async function askCoach({ text, today, day, libraryNames, dayLog, recentLog, lastSessions, plan, restDays, history }: CoachInput): Promise<unknown> {
+// The context goes in the system prompt, not the last message: kept there, the user's words sit
+// right after your previous reply, so "ok i did 9.7.8" reads as a follow-up to it instead of
+// matching some lift in the logs.
+export function buildRequest({ text, today, day, libraryNames, dayLog, recentLog, lastSessions, plan, restDays, history }: CoachInput) {
   const messages: Anthropic.MessageParam[] = history.map((m) => ({ role: m.role === "bot" ? "assistant" : "user", content: m.text }));
   while (messages.length && messages[0].role === "assistant") messages.shift(); // must start with a user turn
 
@@ -131,15 +144,19 @@ export async function askCoach({ text, today, day, libraryNames, dayLog, recentL
     `Suggested plan: ${plan}`,
     `Exercise library: ${libraryNames.join("; ")}`,
   ].join("\n");
-  messages.push({ role: "user", content: `[Context]\n${context}\n\n${text}` });
+  messages.push({ role: "user", content: text });
 
-  const response = await (await getClient()).messages.create({
+  return {
     model: process.env.CLAUDE_MODEL || DEFAULT_MODEL,
     max_tokens: 4000,
-    system: SYSTEM,
-    output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
+    system: `${SYSTEM}\n\n[Context for the user's latest message]\n${context}`,
+    output_config: { effort: "low" as const, format: { type: "json_schema" as const, schema: SCHEMA } },
     messages,
-  });
+  };
+}
+
+export async function askCoach(input: CoachInput): Promise<unknown> {
+  const response = await (await getClient()).messages.create(buildRequest(input));
 
   if (response.stop_reason !== "end_turn") throw new Error(`Claude stopped with ${response.stop_reason}`);
   const block = response.content.find((b) => b.type === "text");

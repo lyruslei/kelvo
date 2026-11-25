@@ -70,11 +70,11 @@ test("nextTarget: below the top of 6-9, same weight, one more rep on each set un
 });
 
 test("nextTarget: every set at 9+, add 2kg per dumbbell and start back at 6", () => {
-  assert.equal(nextTarget([s(9, 24), s(9, 24), s(10, 24)], "dumbbell bench press"), "26kg: 6+ reps x3 sets");
+  assert.equal(nextTarget([s(9, 24), s(9, 24), s(10, 24)], "dumbbell bench press"), "26kg: 6, 6, 6 reps");
 });
 
 test("nextTarget: barbell and machines go up 2.5kg", () => {
-  assert.equal(nextTarget([s(9, 65), s(9, 65)], "bench press"), "67.5kg: 6+ reps x2 sets");
+  assert.equal(nextTarget([s(9, 65), s(9, 65)], "bench press"), "67.5kg: 6, 6 reps");
 });
 
 test("nextTarget: works off the top-weight sets, 2 to 3 of them", () => {
