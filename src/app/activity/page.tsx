@@ -3,14 +3,14 @@ import SlideLink from "@/components/SlideLink";
 import PageSlide from "@/components/PageSlide";
 import { requireSession } from "@/lib/session";
 import SnapPhoto from "@/components/SnapPhoto";
-import { addDays, dayWord, HISTORY_DAYS, monthGrid, monthName, monthOf, parseDay, shiftMonth, todayIn, WEEKDAYS } from "@/lib/days";
-import { loadCardioDays, loadPhotoDays, loadRange } from "@/lib/store";
+import { addDays, dayWord, HISTORY_DAYS, monthGrid, monthName, monthOf, parseDay, restByDefault, shiftMonth, todayIn, WEEKDAYS } from "@/lib/days";
+import { loadCardioDays, loadPhotoDays, loadRange, loadRestDays } from "@/lib/store";
 import report from "../report/report.module.css";
 import styles from "./activity.module.css";
 
 export const instant = false;
 
-// The month at a glance: yellow if you trained (any lift or cardio), empty if you rested.
+// The month at a glance: yellow if you trained (any lift or cardio), grey if you rested.
 // Tap a day to select it (?day=); the progress photo button saves to the selected day.
 export default async function ActivityPage({ searchParams }: PageProps<"/activity">) {
   await requireSession();
@@ -25,7 +25,7 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
 
   const from = `${month}-01`;
   const to = addDays(`${shiftMonth(month, 1)}-01`, -1);
-  const [sets, cardio, photoDays] = await Promise.all([loadRange(from, to), loadCardioDays(from, to), loadPhotoDays()]);
+  const [sets, cardio, photoDays, chosenRest] = await Promise.all([loadRange(from, to), loadCardioDays(from, to), loadPhotoDays(), loadRestDays(from, to)]);
   const snapped = new Set(photoDays.filter((d) => monthOf(d) === month));
 
   const setsOn = new Map<string, number>();
@@ -60,22 +60,24 @@ export default async function ActivityPage({ searchParams }: PageProps<"/activit
             {monthGrid(month).map((d, i) => {
               if (!d) return <span key={`b${i}`} />;
               const active = trained.has(d);
-              const label = `${d}: ${active ? "trained" : "rest"}${snapped.has(d) ? ", progress photo" : ""}`;
-              const cls = `${styles.cell} ${active ? styles.active : ""} ${d === today ? styles.today : ""} ${d === selected && d !== today ? styles.selected : ""}`;
+              // Rest: any past day without training, and today once you chose rest or it's 7 p.m.
+              const rest = !active && (chosenRest.has(d) || restByDefault(d, today));
+              const label = `${d}: ${active ? "trained" : rest ? "rest" : "not yet"}${snapped.has(d) ? ", progress photo" : ""}`;
+              const cls = `${styles.cell} ${active ? styles.active : ""} ${rest ? styles.rest : ""} ${d === today ? styles.today : ""} ${d === selected && d !== today ? styles.selected : ""}`;
               return d > today
                 ? <span key={d} className={`${styles.cell} ${styles.future}`}>{Number(d.slice(8))}</span>
                 : <Link key={d} href={d === today ? `/activity?month=${month}` : `/activity?month=${month}&day=${d}`} replace scroll={false}
                     className={cls} aria-label={label} aria-current={d === selected ? "date" : undefined}>
                     {Number(d.slice(8))}
-                    {snapped.has(d) && <span className={styles.dot} />}
+                    {snapped.has(d) && <span className={styles.fold} />}
                   </Link>;
             })}
           </div>
 
           <p className={styles.legend} aria-hidden="true">
             <span className={`${styles.swatch} ${styles.active}`} /> Trained
-            <span className={styles.swatch} /> Rest
-            <span className={styles.dotKey} /> Photo
+            <span className={`${styles.swatch} ${styles.rest}`} /> Rest
+            <span className={`${styles.swatch} ${styles.foldKey}`}><span className={styles.fold} /></span> Photo
           </p>
 
           {/* Starts on the selected day; the Save screen can still switch it. */}

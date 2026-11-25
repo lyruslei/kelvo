@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { daysApart, dayWord, monthGrid, parseDay, parseRestDay, relativeDay, shortDate, todayIn } from "./days.ts";
+import { daysApart, dayWord, hourIn, monthGrid, parseDay, parseRestDay, relativeDay, restByDefault, shortDate, todayIn } from "./days.ts";
 
 test("parseDay accepts real past dates within a year", () => {
   assert.equal(parseDay("2026-11-02", "2026-11-09"), "2026-11-02");
@@ -59,4 +59,15 @@ test("dayWord", () => {
   assert.equal(dayWord("2026-11-16", "2026-11-17"), "yesterday");
   assert.equal(dayWord("2026-09-05", "2026-11-17"), "Sep 5");
   assert.equal(dayWord("2025-12-30", "2026-01-02"), "Dec 30, 2025");
+});
+
+test("hourIn reads the hour in the given zone", () => {
+  assert.equal(hourIn("Asia/Manila", new Date("2026-11-25T11:30:00Z")), 19);
+  assert.equal(hourIn("UTC", new Date("2026-11-25T00:05:00Z")), 0);
+});
+
+test("restByDefault: past days, and today from 7 p.m.", () => {
+  assert.equal(restByDefault("2026-11-24", "2026-11-25", 8), true);
+  assert.equal(restByDefault("2026-11-25", "2026-11-25", 18), false);
+  assert.equal(restByDefault("2026-11-25", "2026-11-25", 19), true);
 });

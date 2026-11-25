@@ -1,7 +1,7 @@
 import PageSlide from "@/components/PageSlide";
 import { requireSession } from "@/lib/session";
 import { computeGlow, PREVIEWS } from "@/lib/muscles";
-import { addDays, HISTORY_DAYS, niceDate, parseDay, todayIn } from "@/lib/days";
+import { addDays, HISTORY_DAYS, niceDate, parseDay, restByDefault, todayIn } from "@/lib/days";
 import { loadDay, loadHistory } from "@/lib/store";
 import { isRestDay } from "@/lib/schedule";
 import { summarizeDay } from "@/lib/turn";
@@ -29,9 +29,10 @@ export default async function TodayPage({ searchParams }: PageProps<"/">) {
 
   // ?preview=push|pull|legs|chest-arms|rest shows a sample body instead of the day's.
   const key = typeof params.preview === "string" ? params.preview : "";
-  // Rest day (chosen in chat, or earned): the sleeping figure, until you log a lift or cardio anyway.
+  // Rest day (chosen in chat, earned, or nothing logged by 7 p.m.): the sleeping figure,
+  // until you log a lift or cardio anyway.
   const earned = !data.rest && isRestDay(day, history);
-  const isRest = key === "rest" || (!key && !data.sets.length && !data.cardio.length && (data.rest || earned));
+  const isRest = key === "rest" || (!key && !data.sets.length && !data.cardio.length && (data.rest || earned || restByDefault(day, today)));
   const glow = PREVIEWS[key] ? computeGlow(PREVIEWS[key]) : summary.glow;
 
   return (

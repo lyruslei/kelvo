@@ -79,3 +79,14 @@ export function dayWord(day: string, today: string): string {
   if (day === addDays(today, -1)) return "yesterday";
   return shortDate(day, day.slice(0, 4) !== today.slice(0, 4));
 }
+
+// The hour (0-23) right now in your own time zone.
+export function hourIn(timeZone = process.env.APP_TIMEZONE || "Asia/Manila", now = new Date()): number {
+  return Number(new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", hourCycle: "h23" }).format(now));
+}
+
+// No lift or cardio by 7 p.m. makes today a rest day; earlier empty days already are.
+export const REST_AFTER_HOUR = 19;
+export function restByDefault(day: string, today: string, hour = hourIn()): boolean {
+  return day < today || (day === today && hour >= REST_AFTER_HOUR);
+}

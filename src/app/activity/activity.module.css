@@ -24,6 +24,7 @@ a.arrow:hover { background: var(--card); }
   background: var(--card); color: var(--gray); text-decoration: none;
 }
 .active { background: var(--yellow); color: #000; }
+.rest { background: var(--gray); color: #000; }
 .today { outline: 2px solid var(--white); outline-offset: 2px; }
 .future { background: transparent; color: #3A3732; }
 
@@ -31,15 +32,18 @@ a.arrow:hover { background: var(--card); }
 .swatch { width: 14px; height: 14px; border-radius: 4px; background: var(--card); }
 .legend .swatch:not(:first-child) { margin-left: 10px; }
 .swatch.active { background: var(--yellow); }
+.swatch.rest { background: var(--gray); }
 
 /* ---- Progress photos ---- */
-.cell { position: relative; }
-.dot {
-  position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
-  width: 5px; height: 5px; border-radius: 50%; background: var(--white);
+.cell { position: relative; overflow: hidden; }
+/* A white folded-page corner, top right. */
+.fold {
+  position: absolute; top: 0; right: 0;
+  border-style: solid; border-width: 0 18px 18px 0; /* big enough to clear the rounded corner */
+  border-color: transparent var(--white) transparent transparent;
 }
-.active .dot { background: #000; }
-.dotKey { width: 6px; height: 6px; border-radius: 50%; background: var(--white); margin-left: 10px; }
+.foldKey { position: relative; overflow: hidden; margin-left: 10px; }
+.foldKey .fold { border-width: 0 9px 9px 0; }
 
 .snap {
   width: 100%; min-height: 56px; margin-top: 20px;
